@@ -1,0 +1,40 @@
+[settings]
+# testnet or mainnet
+network_type = "testnet"
+log_level = "debug"
+host = "0.0.0.0"
+port = 8090
+coin_market_cap_api_key = "773d38a7-7c78-4790-94f5-2e15fb297ae9"
+sqlite_db_path = "db.sqlite"
+# available api version list
+api_version = ["v2"]
+
+[[accounts]]
+chain_id = 5
+available = true
+# Unique in the accounts list
+private_key = "eac14b2f62136a72601430dfb9abce2f4b98dabef428f5f92869ef85997e8f84"
+# If supported_erc20_list is empty, all erc20 tokens will not be supported
+supported_erc20_tokens = ["mtt"]
+balance_alarm_threshold = 0.05
+balance_check_interval_ms = 500000
+
+[[accounts]]
+chain_id = 97
+available = false
+# Unique in the accounts list
+private_key = "eac14b2f62136a72601430dfb9abce2f4b98dabef428f5f92869ef85997e8f84"
+# If supported_erc20_list is empty, all erc20 tokens will not be supported
+supported_erc20_tokens = ["mUSD"]
+balance_alarm_threshold = 0.05
+balance_check_interval_ms = 500000
+
+[[accounts]]
+chain_id = 51111
+available = true
+# Unique in the accounts list
+private_key = "eac14b2f62136a72601430dfb9abce2f4b98dabef428f5f92869ef85997e8f84"
+# If supported_erc20_list is empty, all erc20 tokens will not be supported
+supported_erc20_tokens = ["mtt"]
+balance_alarm_threshold = 0.05
+balance_check_interval_ms = 500000

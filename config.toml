@@ -1,0 +1,28 @@
+[settings]
+network_type = "testnet"
+log_level = "debug"
+host = "0.0.0.0"
+port = "8090"
+coin_market_cap_api_key = ""
+sqlite_db_path = "db.sqlite"
+api_version = ["v1", "v2"]
+
+[[accounts]]
+chain_id = 97
+available = true
+# Unique in the accounts list
+private_key = ""
+# If supported_erc20_list is empty, all erc20 tokens will not be supported
+supported_erc20_tokens = ["mtt", "musd"]
+balance_alarm_threshold = 0.05
+balance_check_interval_ms = 500000
+
+[[accounts]]
+chain_id = 5
+available = true
+# Unique in the accounts list
+private_key = ""
+# If supported_erc20_list is empty, all erc20 tokens will not be supported
+supported_erc20_tokens = ["mtt", "musd"]
+balance_alarm_threshold = 1
+balance_check_interval_ms = 500000

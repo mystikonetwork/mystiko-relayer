@@ -1,0 +1,27 @@
+version: '3'
+services:
+  gas-relayer-server:
+    image: "mystikonetwork/gas-relayer:latest"
+    container_name: gas-relayer
+    restart: always
+    volumes:
+      - type: bind
+        source: ./config.toml
+        target: /app/config.toml
+        read_only: true
+      - type: bind
+        source: ./mystiko_config.json
+        target: /app/mystiko_config.json
+        read_only: true
+      - type: bind
+        source: ./relayer_config.json
+        target: /app/relayer_config.json
+        read_only: true
+      - type: bind
+        source: ./db.sqlite
+        target: /app/db.sqlite
+    command:
+      - /app/mystiko_relayer
+      - config.toml
+    ports:
+      - "8090:8090"

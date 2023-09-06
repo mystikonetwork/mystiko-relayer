@@ -1,0 +1,162 @@
+{
+  "data": {
+    "1027": {
+      "id": 1027,
+      "name": "Ethereum",
+      "symbol": "ETH",
+      "slug": "ethereum",
+      "is_active": 1,
+      "is_fiat": 0,
+      "circulating_supply": 17199862,
+      "total_supply": 17199862,
+      "max_supply": 21000000,
+      "date_added": "2013-04-28T00:00:00.000Z",
+      "num_market_pairs": 331,
+      "cmc_rank": 1,
+      "last_updated": "2018-08-09T21:56:28.000Z",
+      "tags": [
+        "mineable"
+      ],
+      "platform": null,
+      "self_reported_circulating_supply": null,
+      "self_reported_market_cap": null,
+      "quote": {
+        "USD": {
+          "price": 1902.60701122,
+          "volume_24h": 4314444687.5194,
+          "volume_change_24h": -0.152774,
+          "percent_change_1h": 0.988615,
+          "percent_change_24h": 4.37185,
+          "percent_change_7d": -12.1352,
+          "percent_change_30d": -12.1352,
+          "market_cap": 852164659250.2758,
+          "market_cap_dominance": 51,
+          "fully_diluted_market_cap": 952835089431.14,
+          "last_updated": "2018-08-09T21:56:28.000Z"
+        }
+      }
+    },
+    "825": {
+      "id": 825,
+      "name": "USDT",
+      "symbol": "USDT",
+      "slug": "USDT",
+      "is_active": 1,
+      "is_fiat": 0,
+      "circulating_supply": 17199862,
+      "total_supply": 17199862,
+      "max_supply": 21000000,
+      "date_added": "2013-04-28T00:00:00.000Z",
+      "num_market_pairs": 331,
+      "cmc_rank": 1,
+      "last_updated": "2018-08-09T21:56:28.000Z",
+      "tags": [
+        "mineable"
+      ],
+      "platform": null,
+      "self_reported_circulating_supply": null,
+      "self_reported_market_cap": null,
+      "quote": {
+        "USD": {
+          "price": 1.00001122,
+          "volume_24h": 4314444687.5194,
+          "volume_change_24h": -0.152774,
+          "percent_change_1h": 0.988615,
+          "percent_change_24h": 4.37185,
+          "percent_change_7d": -12.1352,
+          "percent_change_30d": -12.1352,
+          "market_cap": 852164659250.2758,
+          "market_cap_dominance": 51,
+          "fully_diluted_market_cap": 952835089431.14,
+          "last_updated": "2018-08-09T21:56:28.000Z"
+        }
+      }
+    },
+    "1839": {
+      "id": 1839,
+      "name": "BNB",
+      "symbol": "BNB",
+      "slug": "bnb",
+      "num_market_pairs": 1459,
+      "date_added": "2017-07-25T00:00:00.000Z",
+      "tags": [
+        {
+          "slug": "marketplace",
+          "name": "Marketplace",
+          "category": "INDUSTRY"
+        },
+        {
+          "slug": "centralized-exchange",
+          "name": "Centralized Exchange (CEX) Token",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "payments",
+          "name": "Payments",
+          "category": "INDUSTRY"
+        },
+        {
+          "slug": "smart-contracts",
+          "name": "Smart Contracts",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "alameda-research-portfolio",
+          "name": "Alameda Research Portfolio",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "multicoin-capital-portfolio",
+          "name": "Multicoin Capital Portfolio",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "bnb-chain",
+          "name": "BNB Chain",
+          "category": "PLATFORM"
+        },
+        {
+          "slug": "layer-1",
+          "name": "Layer 1",
+          "category": "CATEGORY"
+        }
+      ],
+      "max_supply": null,
+      "circulating_supply": 155853900.05034813,
+      "total_supply": 155853900.05034813,
+      "is_active": 1,
+      "infinite_supply": false,
+      "platform": null,
+      "cmc_rank": 4,
+      "is_fiat": 0,
+      "self_reported_circulating_supply": null,
+      "self_reported_market_cap": null,
+      "tvl_ratio": null,
+      "last_updated": "2023-06-15T10:14:00.000Z",
+      "quote": {
+        "USD": {
+          "price": 235.224777953697,
+          "volume_24h": 596310818.7795836,
+          "volume_change_24h": -35.6232,
+          "percent_change_1h": -0.14478388,
+          "percent_change_24h": -5.30813167,
+          "percent_change_7d": -9.83109356,
+          "percent_change_30d": -24.50753508,
+          "percent_change_60d": -29.41621871,
+          "percent_change_90d": -29.78492712,
+          "market_cap": 36660699032.56082,
+          "market_cap_dominance": 3.6091,
+          "fully_diluted_market_cap": 36660699032.56,
+          "tvl": null,
+          "last_updated": "2023-06-15T10:14:00.000Z"
+        }
+      }
+    }
+  },
+  "status": {
+    "error_code": 0,
+    "error_message": null,
+    "elapsed": 10,
+    "credit_count": 1
+  }
+}

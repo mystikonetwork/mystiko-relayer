@@ -1,0 +1,78 @@
+name: Build
+
+on:
+  push:
+    branches: ['master']
+  pull_request:
+    branches: ['*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PACKAGES_TOKEN }}
+          lfs: true
+          submodules: recursive
+          persist-credentials: false
+
+      - name: SSH Agent
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.SSH_PRIVATE_KEY_MYSTIKO_BACKEND }}
+            ${{ secrets.SSH_PRIVATE_KEY_MYSTIKO_PROTOS }}
+            ${{ secrets.SSH_PRIVATE_KEY_MYSTIKO_RUST }}
+
+      - name: Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy, llvm-tools-preview
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Check Format
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features -j 4 -- -D warnings
+
+      - name: Build
+        run: RUSTFLAGS="-D warnings" cargo build --all-features
+
+      - name: Run Test
+        run: cargo llvm-cov test --all-features --no-report
+
+      - name: Generate Coverage
+        run: cargo llvm-cov report --lcov --output-path=lcov.info
+
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+
+      - name: Check Dirty Files
+        run: git diff --quiet || (echo "some generated files are not included in repo" && exit 1)
+
+      - name: Telegram Failure Notification
+        uses: appleboy/telegram-action@master
+        if: failure()
+        with:
+          message: ❗ Build failed for [${{ github.repository }}](https://github.com/${{ github.repository }}/actions) because of ${{ github.actor }}
+          format: markdown
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+
+      - name: Telegram Success Notification
+        uses: appleboy/telegram-action@master
+        if: success()
+        with:
+          message: Build succeeded for [${{ github.repository }}](https://github.com/${{ github.repository }}/actions)
+          format: markdown
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
