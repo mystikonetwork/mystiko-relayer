@@ -15,7 +15,7 @@ use mystiko_relayer::v1::request::{G1PointStruct, G2PointStruct, ProofStruct, Tr
 use mystiko_relayer::v1::response::TransactResponse;
 use mystiko_relayer::v1::service::{parse_transact_request, transact_v1};
 use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
-use mystiko_server_utils::token_price::query::CurrencyQuoteResponse;
+use mystiko_server_utils::token_price::CurrencyQuoteResponse;
 use mystiko_types::{BridgeType, CircuitType};
 
 fn valid_transact_request_data_v1() -> TransactRequestV1 {

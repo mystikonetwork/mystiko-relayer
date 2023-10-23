@@ -21,7 +21,7 @@ use mystiko_relayer::handler::account::AccountHandler;
 use mystiko_relayer::handler::transaction::TransactionHandler;
 use mystiko_relayer_types::TransactRequestData;
 use mystiko_server_utils::token_price::config::TokenPriceConfig;
-use mystiko_server_utils::token_price::price::TokenPrice;
+use mystiko_server_utils::token_price::TokenPrice;
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::{SqliteStorage, SqliteStorageBuilder};
 use mystiko_types::{BridgeType, CircuitType, TransactionType};

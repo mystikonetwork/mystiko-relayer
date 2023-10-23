@@ -6,8 +6,10 @@ use log::{debug, error, info};
 use mystiko_abi::commitment_pool::{CommitmentPool, TransactRequest};
 use mystiko_ethers::{JsonRpcClientWrapper, Provider, ProviderWrapper, Providers};
 use mystiko_relayer_types::{TransactRequestData, TransactStatus};
-use mystiko_server_utils::token_price::price::TokenPrice;
-use mystiko_server_utils::tx_manager::transaction::TxManager;
+use mystiko_server_utils::token_price::PriceMiddleware;
+use mystiko_server_utils::token_price::TokenPrice;
+use mystiko_server_utils::tx_manager::TransactionData;
+use mystiko_server_utils::tx_manager::{TransactionMiddleware, TxManager};
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::SqliteStorage;
 use std::ops::{Div, Mul};
@@ -87,7 +89,7 @@ where
         let max_gas_price = self.validate_relayer_fee(data, &estimate_gas, gas_price).await?;
         // send transaction
         let tx_hash = self
-            .send(contract_address, &call_data, &signer, &estimate_gas, max_gas_price)
+            .send(contract_address, &call_data, &signer, estimate_gas, max_gas_price)
             .await?;
 
         // update transaction status to pending
@@ -132,7 +134,7 @@ where
         debug!("estimate transaction fee amount = {}", estimate_transaction_fee_amount);
 
         // swap estimate gas to asset symbol
-        let mut price_service = self.token_price.write().await;
+        let price_service = self.token_price.write().await;
         // swap relayer fee to main asset symbol
         debug!(
             "relayer asset symbol = {}, decimals = {} swap to main asset symbol = {} decimals = {}",
@@ -193,28 +195,24 @@ where
         contract_address: Address,
         call_data: &Bytes,
         provider: &Arc<Provider>,
-        gas_limit: &U256,
+        gas_limit: U256,
         max_gas_price: U256,
     ) -> Result<String> {
-        let tx_hash = self
-            .tx_manager
-            .send(
-                contract_address,
-                call_data.to_vec().as_slice(),
-                &U256::zero(),
-                gas_limit,
-                &max_gas_price,
-                provider,
-            )
-            .await?
-            .encode_hex();
+        let data = TransactionData::builder()
+            .to(contract_address)
+            .data(call_data.to_vec().into())
+            .value(U256::zero())
+            .gas(gas_limit)
+            .max_price(max_gas_price)
+            .build();
+        let tx_hash = self.tx_manager.send(&data, provider).await?.encode_hex();
 
         Ok(tx_hash)
     }
 
     async fn wait_confirm(&self, provider: &Arc<Provider>, tx_hash: &str) -> Result<String> {
         let tx_hash = TxHash::from_str(tx_hash)?;
-        let receipt = self.tx_manager.confirm(provider, tx_hash).await?;
+        let receipt = self.tx_manager.confirm(&tx_hash, provider).await?;
         Ok(receipt.transaction_hash.encode_hex())
     }
 
@@ -275,16 +273,14 @@ where
         gas_price: U256,
     ) -> Result<U256> {
         debug!("estimate gas for contract_address: {:?}", contract_address);
-        let estimate_gas = self
-            .tx_manager
-            .estimate_gas(
-                contract_address,
-                call_data.to_vec().as_slice(),
-                &U256::zero(),
-                &gas_price,
-                provider,
-            )
-            .await?;
+        let data = TransactionData::builder()
+            .to(contract_address)
+            .data(call_data.to_vec().into())
+            .value(U256::zero())
+            .gas(gas_price)
+            .max_price(U256::from(100_000_000_000u64))
+            .build();
+        let estimate_gas = self.tx_manager.estimate_gas(&data, provider).await?;
         debug!("estimate gas successful: {}", estimate_gas);
         Ok(estimate_gas)
     }

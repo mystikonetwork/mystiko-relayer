@@ -17,7 +17,8 @@ use mystiko_relayer_types::{
     ContractInfo, HandshakeResponse, RegisterInfoRequest, RegisterInfoResponse, RegisterOptions, RelayTransactResponse,
     RelayTransactStatusResponse, TransactRequestData,
 };
-use mystiko_server_utils::token_price::price::TokenPrice;
+use mystiko_server_utils::token_price::PriceMiddleware;
+use mystiko_server_utils::token_price::TokenPrice;
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::SqliteStorage;
 use mystiko_types::AssetType;
@@ -299,7 +300,7 @@ pub async fn minimum_gas_fee(
     match asset_type {
         AssetType::Erc20 => {
             // swap main to erc20
-            let mut token_price = token.write().await;
+            let token_price = token.write().await;
             let result = token_price
                 .swap(
                     main_asset_symbol,

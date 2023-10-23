@@ -13,7 +13,7 @@ use mystiko_relayer::v1::request::{ChainStatusOptions, ChainStatusRequest};
 use mystiko_relayer::v1::response::ChainStatusResponse;
 use mystiko_relayer::v1::service::chain_status;
 use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
-use mystiko_server_utils::token_price::query::CurrencyQuoteResponse;
+use mystiko_server_utils::token_price::CurrencyQuoteResponse;
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::SqliteStorageBuilder;
 use mystiko_types::CircuitType;
