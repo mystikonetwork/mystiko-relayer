@@ -104,7 +104,7 @@ impl TestServer {
         let token_price = Arc::new(RwLock::new(TokenPrice::new(&default_cfg, "")?));
 
         // mock provider
-        let mock = mock.unwrap_or(MockProvider::new());
+        let mock = mock.unwrap_or_default();
         let provider: Arc<mystiko_ethers::Provider> = Arc::new(Provider::new(ProviderWrapper::new(Box::new(mock))));
         let mut mock_chain_config = MockChainConfig::new();
         mock_chain_config.expect_providers_options().returning(|_| Ok(None));
