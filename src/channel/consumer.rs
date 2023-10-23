@@ -20,7 +20,8 @@ use tokio::sync::mpsc::Receiver;
 use tokio::sync::RwLock;
 use tokio::time::sleep;
 
-const MAX_GAS_PRICE_MULTIPLIER: u64 = 3;
+const MAX_GAS_PRICE_MULTIPLIER_LEGACY: u64 = 1;
+const MAX_GAS_PRICE_MULTIPLIER_1559: u64 = 3;
 
 pub struct TransactionConsumer<P: Providers = Box<dyn Providers>> {
     pub chain_id: u64,
@@ -171,8 +172,13 @@ where
 
         // max gas price_ref = relayer_fee_amount_main / estimate_gas
         let max_gas_price_ref = relayer_fee_amount_main.div(estimate_gas);
-        let max_gas_price = if max_gas_price_ref.gt(&gas_price.mul(MAX_GAS_PRICE_MULTIPLIER)) {
-            gas_price.mul(MAX_GAS_PRICE_MULTIPLIER)
+        let max_gas_price_multiplier = if self.tx_manager.support_1559() {
+            MAX_GAS_PRICE_MULTIPLIER_1559
+        } else {
+            MAX_GAS_PRICE_MULTIPLIER_LEGACY
+        };
+        let max_gas_price = if max_gas_price_ref.gt(&gas_price.mul(max_gas_price_multiplier)) {
+            gas_price.mul(max_gas_price_multiplier)
         } else {
             max_gas_price_ref
         };
