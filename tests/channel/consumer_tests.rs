@@ -9,7 +9,7 @@ use mystiko_relayer::channel::transact_channel;
 use mystiko_relayer::database::Database;
 use mystiko_relayer::handler::transaction::TransactionHandler;
 use mystiko_relayer_types::TransactStatus;
-use mystiko_server_utils::token_price::query::CurrencyQuoteResponse;
+use mystiko_server_utils::token_price::CurrencyQuoteResponse;
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::SqliteStorageBuilder;
 use mystiko_types::AssetType;

@@ -21,7 +21,7 @@ use mystiko_relayer::handler::account::AccountHandler;
 use mystiko_relayer::handler::transaction::TransactionHandler;
 use mystiko_relayer_types::TransactRequestData;
 use mystiko_server_utils::token_price::config::TokenPriceConfig;
-use mystiko_server_utils::token_price::price::TokenPrice;
+use mystiko_server_utils::token_price::TokenPrice;
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::{SqliteStorage, SqliteStorageBuilder};
 use mystiko_types::{BridgeType, CircuitType, TransactionType};
@@ -104,7 +104,7 @@ impl TestServer {
         let token_price = Arc::new(RwLock::new(TokenPrice::new(&default_cfg, "")?));
 
         // mock provider
-        let mock = mock.unwrap_or(MockProvider::new());
+        let mock = mock.unwrap_or_default();
         let provider: Arc<mystiko_ethers::Provider> = Arc::new(Provider::new(ProviderWrapper::new(Box::new(mock))));
         let mut mock_chain_config = MockChainConfig::new();
         mock_chain_config.expect_providers_options().returning(|_| Ok(None));

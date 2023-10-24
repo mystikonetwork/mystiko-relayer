@@ -14,7 +14,7 @@ use anyhow::Result;
 use log::{info, LevelFilter};
 use mystiko_ethers::{ChainConfigProvidersOptions, ProviderPool};
 use mystiko_server_utils::token_price::config::TokenPriceConfig;
-use mystiko_server_utils::token_price::price::TokenPrice;
+use mystiko_server_utils::token_price::TokenPrice;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::RwLock;

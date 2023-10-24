@@ -19,7 +19,7 @@ use mystiko_abi::commitment_pool::{G1Point, G2Point, Proof, TransactRequest};
 use mystiko_ethers::{ProviderPool, Providers};
 use mystiko_relayer_types::response::success;
 use mystiko_relayer_types::{RegisterOptions, TransactRequestData, TransactStatus};
-use mystiko_server_utils::token_price::price::TokenPrice;
+use mystiko_server_utils::token_price::TokenPrice;
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::SqliteStorage;
 use mystiko_types::{AssetType, TransactionType};

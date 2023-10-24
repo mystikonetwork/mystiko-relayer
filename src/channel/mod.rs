@@ -27,9 +27,9 @@ pub mod transact_channel {
     };
     use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
     use mystiko_relayer_types::TransactRequestData;
-    use mystiko_server_utils::token_price::price::TokenPrice;
+    use mystiko_server_utils::token_price::TokenPrice;
     use mystiko_server_utils::tx_manager::config::TxManagerConfig;
-    use mystiko_server_utils::tx_manager::transaction::TxBuilder;
+    use mystiko_server_utils::tx_manager::TxManagerBuilder;
     use mystiko_storage::SqlStatementFormatter;
     use mystiko_storage_sqlite::SqliteStorage;
     use mystiko_types::AssetType;
@@ -71,7 +71,7 @@ pub mod transact_channel {
             // create tx manager config
             let tx_manager_config = TxManagerConfig::new(None)?;
             // create tx builder
-            let tx_builder = TxBuilder::builder()
+            let tx_builder = TxManagerBuilder::builder()
                 .config(tx_manager_config)
                 .chain_id(chain_id)
                 .wallet(wallet)
@@ -79,7 +79,7 @@ pub mod transact_channel {
             // get or create provider
             let provider = providers.get_provider(chain_id).await?;
             // build tx manager
-            let tx_manager = tx_builder.build_tx(&provider).await;
+            let tx_manager = tx_builder.build(&provider).await?;
 
             // create signer provider
             let mystiko_chain_config = mystiko_config
