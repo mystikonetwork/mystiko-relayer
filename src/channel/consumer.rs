@@ -21,7 +21,7 @@ use tokio::sync::RwLock;
 use tokio::time::sleep;
 
 const MAX_GAS_PRICE_MULTIPLIER_LEGACY: u64 = 1;
-const MAX_GAS_PRICE_MULTIPLIER_1559: u64 = 3;
+const MAX_GAS_PRICE_MULTIPLIER_1559: u64 = 2;
 
 pub struct TransactionConsumer<P: Providers = Box<dyn Providers>> {
     pub chain_id: u64,
