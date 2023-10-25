@@ -1015,15 +1015,6 @@
       "providers":[
         {
           "url":"wss://goerli.infura.io/ws/v3/9aa3d95b3bc440fa88ea12eaa4456161"
-        },
-        {
-          "url":"https://goerli.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
-        },
-        {
-          "url":"wss://eth-goerli.alchemyapi.io/v2/X0WmNwQWIjARyvQ2io1aZk0F3IjJ2qcM"
-        },
-        {
-          "url":"https://eth-goerli.alchemyapi.io/v2/X0WmNwQWIjARyvQ2io1aZk0F3IjJ2qcM"
         }
       ],
       "recommendedAmounts":[
@@ -1512,12 +1503,6 @@
       "providers":[
         {
           "url":"https://endpoints.omniatech.io/v1/bsc/testnet/public"
-        },
-        {
-          "url":"https://data-seed-prebsc-2-s3.binance.org:8545"
-        },
-        {
-          "url":"https://thrumming-prettiest-gadget.bsc-testnet.discover.quiknode.pro/47169c08ce80f3b333bcf1fa806100c44c02a5fe"
         }
       ],
       "recommendedAmounts":[
