@@ -10,7 +10,7 @@ use anyhow::{bail, Result};
 use ethers_core::types::U256;
 use ethers_middleware::providers::Middleware;
 use log::{debug, error};
-use mystiko_ethers::{ProviderPool, Providers};
+use mystiko_ethers::{ChainConfigProvidersOptions, ProviderPool, Providers};
 use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
 use mystiko_relayer_types::response::success;
 use mystiko_relayer_types::{
@@ -45,7 +45,7 @@ pub async fn info(
     data: Data<AppState>,
     handler: Data<Arc<AccountHandler<SqlStatementFormatter, SqliteStorage>>>,
     token_price: Data<Arc<RwLock<TokenPrice>>>,
-    providers: Data<Arc<ProviderPool>>,
+    providers: Data<Arc<ProviderPool<ChainConfigProvidersOptions>>>,
 ) -> actix_web::Result<impl Responder, ResponseError> {
     let relayer_config = &data.relayer_config;
     let chain_id = request.chain_id;
