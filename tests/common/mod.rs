@@ -60,11 +60,11 @@ pub const ARRAY_QUEUE_CAPACITY: usize = 10;
 pub struct TestServer {
     pub app_state: AppState,
     pub senders: TransactSendersMap,
-    pub consumers: Vec<TransactionConsumer<ProviderPool>>,
+    pub consumers: Vec<TransactionConsumer<ProviderPool<ChainConfigProvidersOptions>>>,
     pub account_handler: Arc<AccountHandler<SqlStatementFormatter, SqliteStorage>>,
     pub transaction_handler: Arc<TransactionHandler<SqlStatementFormatter, SqliteStorage>>,
     pub token_price: Arc<RwLock<TokenPrice>>,
-    pub providers: Arc<ProviderPool>,
+    pub providers: Arc<ProviderPool<ChainConfigProvidersOptions>>,
     pub mock_server: ServerGuard,
 }
 
@@ -106,11 +106,9 @@ impl TestServer {
         // mock provider
         let mock = mock.unwrap_or_default();
         let provider: Arc<mystiko_ethers::Provider> = Arc::new(Provider::new(ProviderWrapper::new(Box::new(mock))));
-        let mut mock_chain_config = MockChainConfig::new();
-        mock_chain_config.expect_providers_options().returning(|_| Ok(None));
-        let pool: ProviderPool = ProviderPool::builder()
-            .chain_providers_options(Box::new(mock_chain_config) as Box<dyn ChainProvidersOptions>)
-            .build();
+        let pool: ProviderPool<ChainConfigProvidersOptions> = app_state.mystiko_config.clone().into();
+        pool.delete_provider(5).await;
+        pool.delete_provider(97).await;
         pool.set_provider(5, provider.clone()).await;
         pool.set_provider(97, provider.clone()).await;
         let providers = Arc::new(pool);
