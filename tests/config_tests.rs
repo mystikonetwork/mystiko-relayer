@@ -2,7 +2,7 @@ use crate::common::{
     TestServer, SERVER_CONFIG_ID_NOT_FOUND, SERVER_CONFIG_SYMBOL_INVALID, SERVER_CONFIG_VERSION_INVALID,
     TEST_RELAYER_CONFIG_PATH,
 };
-use mystiko_relayer::configs::load_config;
+use mystiko_relayer::configs::load_server_config;
 use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
 
 mod common;
@@ -33,7 +33,7 @@ async fn test_find_account_none() {
 
 #[actix_rt::test]
 async fn test_invalid_0() {
-    let server_config = load_config(SERVER_CONFIG_ID_NOT_FOUND);
+    let server_config = load_server_config(SERVER_CONFIG_ID_NOT_FOUND);
     assert!(server_config.is_ok());
     let relayer_config = RelayerConfig::from_json_file(TEST_RELAYER_CONFIG_PATH).await;
     assert!(relayer_config.is_ok());
@@ -49,7 +49,7 @@ async fn test_invalid_0() {
 
 #[actix_rt::test]
 async fn test_invalid_1() {
-    let server_config = load_config(SERVER_CONFIG_SYMBOL_INVALID);
+    let server_config = load_server_config(SERVER_CONFIG_SYMBOL_INVALID);
     assert!(server_config.is_ok());
     let relayer_config = RelayerConfig::from_json_file(TEST_RELAYER_CONFIG_PATH).await;
     assert!(relayer_config.is_ok());
@@ -65,7 +65,7 @@ async fn test_invalid_1() {
 
 #[actix_rt::test]
 async fn test_invalid_2() {
-    let server_config = load_config(SERVER_CONFIG_VERSION_INVALID);
+    let server_config = load_server_config(SERVER_CONFIG_VERSION_INVALID);
     assert!(server_config.is_ok());
     let relayer_config = RelayerConfig::from_json_file(TEST_RELAYER_CONFIG_PATH).await;
     assert!(relayer_config.is_ok());

@@ -1,6 +1,6 @@
 use crate::channel::transact_channel;
 use crate::common::init_app_state;
-use crate::configs::load_config;
+use crate::configs::{load_server_config, AccountConfig};
 use crate::database::init_sqlite_database;
 use crate::handler::account::AccountHandler;
 use crate::handler::transaction::TransactionHandler;
@@ -29,7 +29,8 @@ pub struct ApplicationOptions<'a> {
 #[allow(clippy::needless_lifetimes)]
 pub async fn run_application<'a>(options: ApplicationOptions<'a>) -> Result<()> {
     // init server config
-    let server_config = load_config(options.server_config_path)?;
+    let server_config = load_server_config(options.server_config_path)?;
+    info!("{:?}", server_config);
     // try init logger
     let _ = env_logger::builder()
         .filter_module(
@@ -52,10 +53,16 @@ pub async fn run_application<'a>(options: ApplicationOptions<'a>) -> Result<()> 
     let app_state = init_app_state(server_config.clone()).await?;
 
     // init sqlite db connection
-    let db = Arc::new(init_sqlite_database(sqlite_db_path).await?);
+    let db = Arc::new(init_sqlite_database(sqlite_db_path.clone()).await?);
 
     // create account handler
-    let account_handler = Arc::new(AccountHandler::new(db.clone(), accounts).await?);
+    let account_handler = Arc::new(
+        AccountHandler::new(
+            db.clone(),
+            accounts.values().cloned().collect::<Vec<AccountConfig>>().as_slice(),
+        )
+        .await?,
+    );
 
     // create transaction handler
     let transaction_handler = Arc::new(TransactionHandler::new(db.clone()));

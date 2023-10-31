@@ -51,7 +51,7 @@ pub mod transact_channel {
     ) -> Result<(TransactSendersMap, Vec<TransactionConsumer<P>>)> {
         let mut transact_senders_map = HashMap::new();
         let mut consumers = Vec::new();
-        for account in server_config.accounts.iter() {
+        for account in server_config.accounts.values() {
             let chain_id = account.chain_id;
             let pk = &account.private_key;
             let (sender, receiver) = channel::<(String, TransactRequestData)>(queue_capacity);
@@ -61,7 +61,7 @@ pub mod transact_channel {
                     private_key: pk.to_string(),
                 },
                 TransactionProducer::new(
-                    account.supported_erc20_tokens.clone(),
+                    account.supported_erc20_tokens.values().cloned().collect(),
                     Arc::new(sender),
                     handler.clone(),
                 ),

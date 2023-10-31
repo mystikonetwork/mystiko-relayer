@@ -15,7 +15,7 @@ use mystiko_relayer::v1::service::chain_status;
 use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
 use mystiko_server_utils::token_price::CurrencyQuoteResponse;
 use mystiko_storage::SqlStatementFormatter;
-use mystiko_storage_sqlite::SqliteStorageBuilder;
+use mystiko_storage_sqlite::SqliteStorage;
 use mystiko_types::CircuitType;
 use std::sync::Arc;
 
@@ -349,7 +349,7 @@ async fn test_account_not_found_in_db_v1() {
     let mut server = TestServer::new(None).await.unwrap();
     let database = Database::new(
         SqlStatementFormatter::sqlite(),
-        SqliteStorageBuilder::new().in_memory().build().await.unwrap(),
+        SqliteStorage::from_memory().await.unwrap(),
     );
     database.migrate().await.unwrap();
     server.account_handler = Arc::new(AccountHandler::new(Arc::new(database), &[]).await.unwrap());

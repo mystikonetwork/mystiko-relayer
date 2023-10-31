@@ -29,7 +29,7 @@ use validator::Validate;
 
 #[get("/handshake")]
 pub async fn handshake(data: Data<AppState>) -> actix_web::Result<impl Responder, ResponseError> {
-    let api_version = data.server_config.settings.api_version.clone();
+    let api_version = data.server_config.settings.api_version.values().cloned().collect();
     let package_version = env!("CARGO_PKG_VERSION");
     Ok(success(
         HandshakeResponse::builder()
@@ -238,7 +238,7 @@ pub async fn transaction_status(
             RelayTransactStatusResponse::builder()
                 .uuid(transaction.id)
                 .chain_id(transaction.data.chain_id)
-                .transaction_type(transaction.data.transaction_type)
+                .spend_type(transaction.data.spend_type)
                 .status(transaction.data.status)
                 .transaction_hash(transaction.data.transaction_hash)
                 .error_msg(transaction.data.error_message)

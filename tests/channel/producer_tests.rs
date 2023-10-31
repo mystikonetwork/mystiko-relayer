@@ -1,7 +1,7 @@
 use crate::common::TestServer;
 use mystiko_relayer::channel::transact_channel;
 use mystiko_relayer_types::TransactRequestData;
-use mystiko_types::{AssetType, CircuitType, TransactionType};
+use mystiko_types::{AssetType, CircuitType, SpendType};
 use serial_test::file_serial;
 
 #[actix_rt::test]
@@ -27,7 +27,7 @@ async fn send_closed_channel() {
     let result = producer
         .send(TransactRequestData {
             contract_param: Default::default(),
-            transaction_type: TransactionType::Transfer,
+            spend_type: SpendType::Transfer,
             bridge_type: Default::default(),
             chain_id: 0,
             asset_symbol: "".to_string(),

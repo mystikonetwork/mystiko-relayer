@@ -15,7 +15,7 @@ use mystiko_ethers::{
 use mystiko_relayer::channel::consumer::TransactionConsumer;
 use mystiko_relayer::channel::{transact_channel, TransactSendersMap};
 use mystiko_relayer::common::{init_app_state, AppState};
-use mystiko_relayer::configs::load_config;
+use mystiko_relayer::configs::{load_server_config, AccountConfig};
 use mystiko_relayer::database::Database;
 use mystiko_relayer::handler::account::AccountHandler;
 use mystiko_relayer::handler::transaction::TransactionHandler;
@@ -23,8 +23,8 @@ use mystiko_relayer_types::TransactRequestData;
 use mystiko_server_utils::token_price::config::TokenPriceConfig;
 use mystiko_server_utils::token_price::TokenPrice;
 use mystiko_storage::SqlStatementFormatter;
-use mystiko_storage_sqlite::{SqliteStorage, SqliteStorageBuilder};
-use mystiko_types::{BridgeType, CircuitType, TransactionType};
+use mystiko_storage_sqlite::SqliteStorage;
+use mystiko_types::{BridgeType, CircuitType, SpendType};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
@@ -71,7 +71,7 @@ pub struct TestServer {
 impl TestServer {
     pub async fn new(mock: Option<MockProvider>) -> Result<Self> {
         // load server config
-        let server_config = load_config(TESTNET_CONFIG_PATH)?;
+        let server_config = load_server_config(TESTNET_CONFIG_PATH)?;
 
         let _ = env_logger::builder()
             .filter_module(
@@ -84,17 +84,14 @@ impl TestServer {
         let app_state = init_app_state(server_config).await?;
 
         // create database in memory
-        let storage = SqliteStorageBuilder::new().in_memory().build().await.unwrap();
+        let storage = SqliteStorage::from_memory().await.unwrap();
         let database = Database::new(SqlStatementFormatter::sqlite(), storage);
         database.migrate().await.unwrap();
         let db = Arc::new(database);
 
         // handler
-        let account_handler = Arc::new(
-            AccountHandler::new(db.clone(), &app_state.server_config.accounts)
-                .await
-                .unwrap(),
-        );
+        let accounts: Vec<AccountConfig> = app_state.server_config.accounts.values().cloned().collect();
+        let account_handler = Arc::new(AccountHandler::new(db.clone(), &accounts).await.unwrap());
         let transaction_handler = Arc::new(TransactionHandler::new(db.clone()));
 
         // init mock token price
@@ -168,7 +165,7 @@ async fn create_providers_chain_id_not_found() {
 async fn init_app_state_from_remote() {
     let mut server = Server::new_async().await;
 
-    let mut server_config = load_config(TESTNET_CONFIG_PATH).unwrap();
+    let mut server_config = load_server_config(TESTNET_CONFIG_PATH).unwrap();
     server_config.options.mystiko_config_path = None;
     server_config.options.relayer_config_path = None;
     server_config.options.relayer_remote_config_base_url = Some(format!("{}/relayer_config", server.url()));
@@ -192,7 +189,7 @@ async fn init_app_state_from_remote() {
     mock_1.assert_async().await;
 
     // mainnet
-    let mut server_config = load_config(MAINNET_CONFIG_PATH).unwrap();
+    let mut server_config = load_server_config(MAINNET_CONFIG_PATH).unwrap();
     server_config.options.mystiko_config_path = None;
     server_config.options.relayer_config_path = None;
     server_config.options.relayer_remote_config_base_url = Some(format!("{}/relayer_config", server.url()));
@@ -268,7 +265,7 @@ pub fn get_valid_transact_request_data() -> TransactRequestData {
             random_auditing_public_key: Default::default(),
             encrypted_auditor_notes: vec![],
         },
-        transaction_type: TransactionType::Withdraw,
+        spend_type: SpendType::Withdraw,
         bridge_type: BridgeType::Loop,
         chain_id: 5,
         asset_symbol: "ETH".to_string(),

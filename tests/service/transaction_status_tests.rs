@@ -9,8 +9,8 @@ use mystiko_relayer::service::transaction_status;
 use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
 use mystiko_relayer_types::{RelayTransactStatusResponse, TransactRequestData, TransactStatus};
 use mystiko_storage::SqlStatementFormatter;
-use mystiko_storage_sqlite::SqliteStorageBuilder;
-use mystiko_types::{BridgeType, CircuitType, TransactionType};
+use mystiko_storage_sqlite::SqliteStorage;
+use mystiko_types::{BridgeType, CircuitType, SpendType};
 use serial_test::file_serial;
 use std::sync::Arc;
 
@@ -29,7 +29,7 @@ async fn test_successful() {
     // insert raw transaction data
     let request = TransactRequestData {
         contract_param: Default::default(),
-        transaction_type: TransactionType::Withdraw,
+        spend_type: SpendType::Withdraw,
         bridge_type: BridgeType::Loop,
         chain_id: 5,
         asset_symbol: "MTT".to_string(),
@@ -89,7 +89,7 @@ async fn test_db_error() {
     let mut server = TestServer::new(None).await.unwrap();
     let database = Database::new(
         SqlStatementFormatter::sqlite(),
-        SqliteStorageBuilder::new().in_memory().build().await.unwrap(),
+        SqliteStorage::from_memory().await.unwrap(),
     );
     let transaction_handler = TransactionHandler::new(Arc::new(database));
     server.transaction_handler = Arc::new(transaction_handler);

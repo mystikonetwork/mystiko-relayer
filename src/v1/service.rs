@@ -22,7 +22,7 @@ use mystiko_relayer_types::{RegisterOptions, TransactRequestData, TransactStatus
 use mystiko_server_utils::token_price::TokenPrice;
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::SqliteStorage;
-use mystiko_types::{AssetType, TransactionType};
+use mystiko_types::{AssetType, SpendType};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
@@ -183,7 +183,7 @@ pub async fn job_status(
     match handler.find_by_id(id.as_str()).await {
         Ok(Some(transaction)) => Ok(success(JobStatusResponse {
             id: transaction.id,
-            job_type: transaction.data.transaction_type,
+            job_type: transaction.data.spend_type,
             status: transaction.data.status,
             response: transaction.data.transaction_hash.map(|hash| ResponseQueueData {
                 hash,
@@ -339,7 +339,7 @@ pub fn parse_transact_request(request: TransactRequestV1, asset_decimals: u32) -
             random_auditing_public_key,
             encrypted_auditor_notes,
         },
-        transaction_type: convert_transaction_type(request.transaction_type),
+        spend_type: convert_spend_type(request.transaction_type),
         bridge_type: request.bridge_type,
         chain_id: request.chain_id,
         asset_symbol: request.asset_symbol,
@@ -389,9 +389,9 @@ fn convert_random_auditing_public_key(key: &str) -> Result<U256> {
     Ok(result)
 }
 
-fn convert_transaction_type(t: TransactionTypeV1) -> TransactionType {
+fn convert_spend_type(t: TransactionTypeV1) -> SpendType {
     match t {
-        TransactionTypeV1::Transfer => TransactionType::Transfer,
-        TransactionTypeV1::Withdraw => TransactionType::Withdraw,
+        TransactionTypeV1::Transfer => SpendType::Transfer,
+        TransactionTypeV1::Withdraw => SpendType::Withdraw,
     }
 }

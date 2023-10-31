@@ -1,6 +1,7 @@
 use crate::configs::ServerConfig;
 use anyhow::Result;
 use mystiko_config::MystikoConfig;
+use mystiko_protos::common::v1::ConfigOptions;
 use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
 use mystiko_types::NetworkType::Testnet;
 use std::sync::Arc;
@@ -38,14 +39,12 @@ pub async fn init_app_state(server_config: ServerConfig) -> Result<AppState> {
     let mystiko_config = match mystiko_config_path {
         None => {
             let mut options = if let Some(base_url) = &server_config.options.mystiko_remote_config_base_url {
-                mystiko_config::RemoteOptions::builder()
-                    .base_url(base_url.to_string())
-                    .build()
+                ConfigOptions::builder().remote_base_url(base_url.to_string()).build()
             } else {
-                mystiko_config::RemoteOptions::builder().build()
+                ConfigOptions::builder().build()
             };
             if server_config.settings.network_type == Testnet {
-                options.is_testnet = true;
+                options.is_testnet = Some(true);
             }
             MystikoConfig::from_remote(&options).await?
         }

@@ -3,7 +3,7 @@ use crate::document::transaction::TransactionCollection;
 use anyhow::Result;
 use log::info;
 use mystiko_storage::{Collection, Document, MigrationHistory, SqlStatementFormatter, StatementFormatter, Storage};
-use mystiko_storage_sqlite::{SqliteStorage, SqliteStorageBuilder};
+use mystiko_storage_sqlite::SqliteStorage;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
@@ -31,19 +31,21 @@ impl<F: StatementFormatter, S: Storage> Database<F, S> {
     }
 }
 
-pub async fn init_sqlite_database(path: &str) -> Result<Database<SqlStatementFormatter, SqliteStorage>> {
+pub async fn init_sqlite_database(path: Option<String>) -> Result<Database<SqlStatementFormatter, SqliteStorage>> {
     let storage = init_sqlite_storage(path).await?;
     let database = Database::new(SqlStatementFormatter::sqlite(), storage);
     database.migrate().await?;
     Ok(database)
 }
 
-async fn init_sqlite_storage(path: &str) -> Result<SqliteStorage> {
-    if !Path::new(path).exists() {
-        info!("path {} db file not exists, create sqlite db file", path);
-        let mut file = File::create(path)?;
-        file.write_all(b"")?;
+async fn init_sqlite_storage(path: Option<String>) -> Result<SqliteStorage> {
+    if let Some(path) = path {
+        if !Path::new(&path).exists() {
+            info!("path {} db file not exists, create sqlite db file", &path);
+            let mut file = File::create(&path)?;
+            file.write_all(b"")?;
+        }
+        return Ok(SqliteStorage::from_path(path).await?);
     }
-    let storage = SqliteStorageBuilder::new().path(path).build().await?;
-    Ok(storage)
+    Ok(SqliteStorage::from_memory().await?)
 }
