@@ -37,6 +37,10 @@ pub async fn run_application<'a>(options: ApplicationOptions<'a>) -> Result<()> 
             "mystiko_relayer",
             LevelFilter::from_str(&server_config.settings.log_level)?,
         )
+        .filter_module(
+            "mystiko_server_utils",
+            LevelFilter::from_str(&server_config.settings.log_level)?,
+        )
         .try_init();
 
     info!("load server config successful");
