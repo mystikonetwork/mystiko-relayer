@@ -33,8 +33,8 @@ impl TransactionProducer {
         // save data to database
         let transaction = self.handler.create_by_request(data.clone()).await?;
         info!(
-            "successfully created a transaction(id = {}, chain_id = {}, transaction_type = {:?})",
-            &transaction.id, &transaction.data.chain_id, &transaction.data.transaction_type
+            "successfully created a transaction(id = {}, chain_id = {}, spend_type = {:?})",
+            &transaction.id, &transaction.data.chain_id, &transaction.data.spend_type
         );
 
         // send transaction to queue
@@ -47,8 +47,8 @@ impl TransactionProducer {
         match queue {
             Ok(_) => {
                 info!(
-                    "successfully sent a transaction to queue(id = {}, chain_id = {}, transaction_type = {:?})",
-                    &transaction.id, &transaction.data.chain_id, &transaction.data.transaction_type
+                    "successfully sent a transaction to queue(id = {}, chain_id = {}, spend_type = {:?})",
+                    &transaction.id, &transaction.data.chain_id, &transaction.data.spend_type
                 );
                 Ok(transaction)
             }

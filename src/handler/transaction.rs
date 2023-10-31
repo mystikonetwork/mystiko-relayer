@@ -36,7 +36,7 @@ where
     pub async fn create_by_request(&self, data: TransactRequestData) -> Result<Document<Transaction>> {
         let transaction = Transaction {
             chain_id: data.chain_id,
-            transaction_type: data.transaction_type,
+            spend_type: data.spend_type,
             bridge_type: data.bridge_type,
             status: TransactStatus::Queued,
             pool_address: data.pool_address,

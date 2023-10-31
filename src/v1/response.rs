@@ -1,5 +1,5 @@
 use mystiko_relayer_types::TransactStatus;
-use mystiko_types::TransactionType;
+use mystiko_types::SpendType;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -25,7 +25,7 @@ pub struct ContractResponse {
 pub struct JobStatusResponse {
     pub id: String,
     #[serde(rename = "type")]
-    pub job_type: TransactionType,
+    pub job_type: SpendType,
     pub status: TransactStatus,
     pub response: Option<ResponseQueueData>,
     pub error: Option<String>,

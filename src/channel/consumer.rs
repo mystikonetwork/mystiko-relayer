@@ -45,8 +45,8 @@ where
         loop {
             if let Some((id, data)) = self.receiver.recv().await {
                 info!(
-                    "consumer receive a transaction(id = {}, chain_id = {}, transaction_type = {:?})",
-                    id, self.chain_id, data.transaction_type
+                    "consumer receive a transaction(id = {}, chain_id = {}, spend_type = {:?})",
+                    id, self.chain_id, data.spend_type
                 );
 
                 let options = match self.consume(id.as_str(), &data).await {

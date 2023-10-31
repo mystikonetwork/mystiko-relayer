@@ -9,7 +9,7 @@ use mystiko_relayer::error::ResponseError;
 use mystiko_relayer::service::{transact, transaction_status};
 use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
 use mystiko_relayer_types::{RelayTransactResponse, RelayTransactStatusResponse, TransactRequestData, TransactStatus};
-use mystiko_types::{BridgeType, CircuitType, TransactionType};
+use mystiko_types::{BridgeType, CircuitType, SpendType};
 use serial_test::file_serial;
 
 #[actix_rt::test]
@@ -127,7 +127,7 @@ async fn test_invalid_request() {
         .uri("/transact")
         .set_json(TransactRequestData {
             contract_param: Default::default(),
-            transaction_type: TransactionType::Withdraw,
+            spend_type: SpendType::Withdraw,
             bridge_type: BridgeType::Loop,
             chain_id: 5,
             asset_symbol: "".to_string(),
@@ -168,7 +168,7 @@ async fn test_repeated_transaction() {
     // insert raw transaction data
     let request = TransactRequestData {
         contract_param: Default::default(),
-        transaction_type: TransactionType::Withdraw,
+        spend_type: SpendType::Withdraw,
         bridge_type: BridgeType::Loop,
         chain_id: 5,
         asset_symbol: "MTT".to_string(),
@@ -208,7 +208,7 @@ async fn test_chain_id_not_found() {
         .uri("/transact")
         .set_json(TransactRequestData {
             contract_param: Default::default(),
-            transaction_type: TransactionType::Withdraw,
+            spend_type: SpendType::Withdraw,
             bridge_type: BridgeType::Loop,
             chain_id: 1,
             asset_symbol: "MTT".to_string(),

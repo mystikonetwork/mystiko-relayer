@@ -1,7 +1,7 @@
 use mystiko_relayer_types::TransactStatus;
 use mystiko_storage::{DocumentData, IndexColumns};
 use mystiko_storage_macros::CollectionBuilder;
-use mystiko_types::{BridgeType, CircuitType, TransactionType};
+use mystiko_types::{BridgeType, CircuitType, SpendType};
 use num_bigint::BigUint;
 
 #[derive(CollectionBuilder, Clone, Debug, PartialEq)]
@@ -9,7 +9,7 @@ use num_bigint::BigUint;
 pub struct Transaction {
     pub chain_id: u64,
     #[column(length_limit = 32)]
-    pub transaction_type: TransactionType,
+    pub spend_type: SpendType,
     #[column(length_limit = 64)]
     pub bridge_type: BridgeType,
     #[column(length_limit = 64)]

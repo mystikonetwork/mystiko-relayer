@@ -1,7 +1,7 @@
 use crate::common::TestServer;
 use mystiko_relayer::handler::transaction::UpdateTransactionOptions;
 use mystiko_relayer_types::{TransactRequestData, TransactStatus};
-use mystiko_types::{CircuitType, TransactionType};
+use mystiko_types::{CircuitType, SpendType};
 
 #[actix_rt::test]
 async fn update_by_id() {
@@ -10,7 +10,7 @@ async fn update_by_id() {
     let doc = transaction_handler
         .create_by_request(TransactRequestData {
             contract_param: Default::default(),
-            transaction_type: TransactionType::Transfer,
+            spend_type: SpendType::Transfer,
             bridge_type: Default::default(),
             chain_id: 0,
             asset_symbol: "".to_string(),
@@ -41,7 +41,7 @@ async fn no_change_update() {
     let doc = transaction_handler
         .create_by_request(TransactRequestData {
             contract_param: Default::default(),
-            transaction_type: TransactionType::Transfer,
+            spend_type: SpendType::Transfer,
             bridge_type: Default::default(),
             chain_id: 0,
             asset_symbol: "".to_string(),
@@ -92,7 +92,7 @@ async fn update_exist_error_msg() {
     let doc = transaction_handler
         .create_by_request(TransactRequestData {
             contract_param: Default::default(),
-            transaction_type: TransactionType::Transfer,
+            spend_type: SpendType::Transfer,
             bridge_type: Default::default(),
             chain_id: 0,
             asset_symbol: "".to_string(),

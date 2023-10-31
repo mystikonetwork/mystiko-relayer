@@ -11,7 +11,7 @@ use mystiko_relayer::handler::transaction::TransactionHandler;
 use mystiko_relayer_types::TransactStatus;
 use mystiko_server_utils::token_price::CurrencyQuoteResponse;
 use mystiko_storage::SqlStatementFormatter;
-use mystiko_storage_sqlite::SqliteStorageBuilder;
+use mystiko_storage_sqlite::SqliteStorage;
 use mystiko_types::AssetType;
 use serial_test::file_serial;
 use std::sync::Arc;
@@ -322,7 +322,7 @@ fn test_max_retry_update_transaction_status() {
         for mut consumer in server.consumers {
             consumer.handler = Arc::new(TransactionHandler::new(Arc::new(Database::new(
                 SqlStatementFormatter::sqlite(),
-                SqliteStorageBuilder::new().in_memory().build().await.unwrap(),
+                SqliteStorage::from_memory().await.unwrap(),
             ))));
             rt.spawn(async {
                 consumer.run().await;

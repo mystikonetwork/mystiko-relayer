@@ -53,12 +53,12 @@ where
     for account in accounts.iter() {
         // private key to public key
         let address = get_address(&account.private_key)?;
+        let supported_erc20_tokens: Vec<String> = account.supported_erc20_tokens.values().cloned().collect();
         let doc = Account {
             chain_address: address,
             chain_id: account.chain_id,
             available: account.available,
-            supported_erc20_tokens: account
-                .supported_erc20_tokens
+            supported_erc20_tokens: supported_erc20_tokens
                 .iter()
                 .map(|token| token.to_lowercase())
                 .collect(),
