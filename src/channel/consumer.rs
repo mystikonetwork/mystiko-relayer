@@ -12,7 +12,6 @@ use mystiko_server_utils::tx_manager::TransactionData;
 use mystiko_server_utils::tx_manager::{TransactionMiddleware, TxManager};
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::SqliteStorage;
-use sha3::digest::consts::U2;
 use std::ops::{Div, Mul};
 use std::str::FromStr;
 use std::sync::Arc;
