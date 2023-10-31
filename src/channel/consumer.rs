@@ -283,8 +283,8 @@ where
             .to(contract_address)
             .data(call_data.to_vec().into())
             .value(U256::zero())
-            .gas(gas_price)
-            .max_price(U256::from(100_000_000_000u64))
+            .gas(U256::zero())
+            .max_price(gas_price)
             .build();
         let estimate_gas = self.tx_manager.estimate_gas(&data, provider).await?;
         debug!("estimate gas successful: {}", estimate_gas);
