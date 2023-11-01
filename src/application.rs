@@ -23,14 +23,14 @@ use typed_builder::TypedBuilder;
 #[derive(TypedBuilder)]
 pub struct ApplicationOptions<'a> {
     array_queue_capacity: usize,
-    server_config_path: &'a str,
+    server_config_path: Option<&'a str>,
 }
 
 #[allow(clippy::needless_lifetimes)]
 pub async fn run_application<'a>(options: ApplicationOptions<'a>) -> Result<()> {
     // init server config
     let server_config = load_server_config(options.server_config_path)?;
-    info!("{:?}", server_config);
+    println!("server config {:?}", server_config);
     // try init logger
     let _ = env_logger::builder()
         .filter_module(

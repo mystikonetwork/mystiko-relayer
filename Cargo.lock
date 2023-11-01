@@ -2600,6 +2600,7 @@ dependencies = [
  "config",
  "crypto-bigint",
  "derive_more",
+ "dotenv",
  "env_logger",
  "ethereum-types",
  "ethers-core",
