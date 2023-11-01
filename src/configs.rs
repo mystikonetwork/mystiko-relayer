@@ -9,57 +9,112 @@ use mystiko_validator::validate::is_api_version;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
+use typed_builder::TypedBuilder;
 use validator::Validate;
 
-#[derive(Validate, Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(TypedBuilder, Validate, Serialize, Deserialize, Debug, Clone)]
+#[builder(field_defaults(setter(into)))]
 pub struct ServerConfig {
     #[validate]
+    #[serde(default)]
+    #[builder(default)]
     pub settings: Settings,
     #[validate]
+    #[serde(default)]
+    #[builder(default)]
     pub accounts: HashMap<u16, AccountConfig>,
     #[validate]
     #[serde(default)]
+    #[builder(default)]
     pub options: Options,
 }
 
-#[derive(Validate, Serialize, Deserialize, Debug, Clone, Default)]
+impl Default for ServerConfig {
+    fn default() -> Self {
+        Self::builder().build()
+    }
+}
+
+#[derive(TypedBuilder, Validate, Serialize, Deserialize, Debug, Clone)]
+#[builder(field_defaults(setter(into)))]
 pub struct Settings {
+    #[builder(default)]
     #[validate(custom(function = "is_api_version"))]
     pub api_version: HashMap<u16, String>,
+    #[builder(default)]
     pub network_type: NetworkType,
-    #[validate(contains = ".sqlite")]
     #[serde(default)]
+    #[builder(default)]
+    #[validate(contains = ".sqlite")]
     pub sqlite_db_path: Option<String>,
+    #[serde(default = "default_log_level")]
+    #[builder(default = default_log_level())]
     pub log_level: String,
+    #[serde(default = "default_host")]
+    #[builder(default = default_host())]
     pub host: String,
+    #[serde(default = "default_port")]
+    #[builder(default = default_port())]
     pub port: u16,
+    #[builder(default)]
     #[validate(length(min = 1))]
     pub coin_market_cap_api_key: String,
 }
 
-#[derive(Validate, Serialize, Deserialize, Debug, Clone, Default)]
+impl Default for Settings {
+    fn default() -> Self {
+        Self::builder().build()
+    }
+}
+
+#[derive(TypedBuilder, Validate, Serialize, Deserialize, Debug, Clone)]
+#[builder(field_defaults(setter(into)))]
 pub struct AccountConfig {
+    #[builder(default)]
     #[validate(range(min = 1))]
     pub chain_id: u64,
+    #[builder(default)]
     pub private_key: String,
+    #[serde(default = "default_available")]
+    #[builder(default = default_available())]
     pub available: bool,
+    #[builder(default)]
     pub supported_erc20_tokens: HashMap<u16, String>,
-    #[validate(range(min = 0.0001))]
+    #[serde(default)]
+    #[builder(default)]
     pub balance_alarm_threshold: f64,
-    #[validate(range(min = 20000))]
+    #[serde(default)]
+    #[builder(default)]
     pub balance_check_interval_ms: u64,
 }
 
-#[derive(Validate, Serialize, Deserialize, Debug, Clone, Default)]
+impl Default for AccountConfig {
+    fn default() -> Self {
+        Self::builder().build()
+    }
+}
+
+#[derive(TypedBuilder, Validate, Serialize, Deserialize, Debug, Clone)]
+#[builder(field_defaults(setter(into)))]
 pub struct Options {
     #[serde(default)]
+    #[builder(default)]
     pub mystiko_config_path: Option<String>,
     #[serde(default)]
+    #[builder(default)]
     pub relayer_config_path: Option<String>,
     #[serde(default)]
+    #[builder(default)]
     pub mystiko_remote_config_base_url: Option<String>,
     #[serde(default)]
+    #[builder(default)]
     pub relayer_remote_config_base_url: Option<String>,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self::builder().build()
+    }
 }
 
 impl ServerConfig {
@@ -126,4 +181,20 @@ pub fn load_server_config(path: Option<&str>) -> Result<ServerConfig> {
         ConfigLoadOptions::builder().env_prefix("MYSTIKO_RELAYER").build()
     };
     load_config::<PathBuf, ServerConfig>(&options)
+}
+
+fn default_log_level() -> String {
+    "info".to_string()
+}
+
+fn default_host() -> String {
+    "0.0.0.0".to_string()
+}
+
+fn default_port() -> u16 {
+    8090
+}
+
+fn default_available() -> bool {
+    true
 }
