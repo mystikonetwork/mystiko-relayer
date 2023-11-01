@@ -11,7 +11,7 @@ use mystiko_types::AssetType;
 async fn init_provider_not_found() {
     let server = TestServer::new(None).await.unwrap();
     let app_state = server.app_state;
-    let server_config = load_server_config(SERVER_CONFIG_ID_NOT_FOUND).unwrap();
+    let server_config = load_server_config(Some(SERVER_CONFIG_ID_NOT_FOUND)).unwrap();
     let result = transact_channel::init(
         &server_config,
         &app_state.relayer_config,

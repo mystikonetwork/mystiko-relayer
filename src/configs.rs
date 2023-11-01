@@ -1,5 +1,6 @@
 use anyhow::{bail, Result};
 use config::FileFormat;
+use dotenv::dotenv;
 use log::debug;
 use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
 use mystiko_types::NetworkType;
@@ -113,11 +114,16 @@ impl ServerConfig {
     }
 }
 
-pub fn load_server_config(path: &str) -> Result<ServerConfig> {
-    let format = FileFormat::Toml;
-    let options = ConfigLoadOptions::builder()
-        .paths(ConfigFile::builder().path(path).format(format).build())
-        .env_prefix("RELAYER_CONFIG")
-        .build();
+pub fn load_server_config(path: Option<&str>) -> Result<ServerConfig> {
+    let options = if let Some(path) = path {
+        let format = FileFormat::Toml;
+        ConfigLoadOptions::builder()
+            .paths(ConfigFile::builder().path(path).format(format).build())
+            .env_prefix("RELAYER_CONFIG")
+            .build()
+    } else {
+        dotenv().ok();
+        ConfigLoadOptions::builder().env_prefix("MYSTIKO_RELAYER").build()
+    };
     load_config::<PathBuf, ServerConfig>(&options)
 }

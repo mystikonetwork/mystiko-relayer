@@ -1,5 +1,6 @@
 use anyhow::Result;
 use mystiko_relayer::application::{run_application, ApplicationOptions};
+use std::path::Path;
 
 pub const DEFAULT_SERVER_CONFIG_PATH: &str = "./config.toml";
 pub const ARRAY_QUEUE_CAPACITY: usize = 50;
@@ -11,10 +12,15 @@ async fn main() -> Result<()> {
         .get(1)
         .map(|path| path.as_str())
         .unwrap_or(DEFAULT_SERVER_CONFIG_PATH);
+    let path = if Path::new(server_config_path).try_exists()? {
+        Some(server_config_path)
+    } else {
+        None
+    };
 
     run_application(
         ApplicationOptions::builder()
-            .server_config_path(server_config_path)
+            .server_config_path(path)
             .array_queue_capacity(ARRAY_QUEUE_CAPACITY)
             .build(),
     )

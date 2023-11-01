@@ -71,7 +71,7 @@ pub struct TestServer {
 impl TestServer {
     pub async fn new(mock: Option<MockProvider>) -> Result<Self> {
         // load server config
-        let server_config = load_server_config(TESTNET_CONFIG_PATH)?;
+        let server_config = load_server_config(Some(TESTNET_CONFIG_PATH))?;
 
         let _ = env_logger::builder()
             .filter_module(
@@ -165,7 +165,7 @@ async fn create_providers_chain_id_not_found() {
 async fn init_app_state_from_remote() {
     let mut server = Server::new_async().await;
 
-    let mut server_config = load_server_config(TESTNET_CONFIG_PATH).unwrap();
+    let mut server_config = load_server_config(Some(TESTNET_CONFIG_PATH)).unwrap();
     server_config.options.mystiko_config_path = None;
     server_config.options.relayer_config_path = None;
     server_config.options.relayer_remote_config_base_url = Some(format!("{}/relayer_config", server.url()));
@@ -189,7 +189,7 @@ async fn init_app_state_from_remote() {
     mock_1.assert_async().await;
 
     // mainnet
-    let mut server_config = load_server_config(MAINNET_CONFIG_PATH).unwrap();
+    let mut server_config = load_server_config(Some(MAINNET_CONFIG_PATH)).unwrap();
     server_config.options.mystiko_config_path = None;
     server_config.options.relayer_config_path = None;
     server_config.options.relayer_remote_config_base_url = Some(format!("{}/relayer_config", server.url()));
