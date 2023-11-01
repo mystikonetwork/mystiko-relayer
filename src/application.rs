@@ -30,7 +30,6 @@ pub struct ApplicationOptions<'a> {
 pub async fn run_application<'a>(options: ApplicationOptions<'a>) -> Result<()> {
     // init server config
     let server_config = load_server_config(options.server_config_path)?;
-    println!("server config {:?}", server_config);
     // try init logger
     let _ = env_logger::builder()
         .filter_module(
