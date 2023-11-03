@@ -15,7 +15,6 @@ async fn init_provider_not_found() {
     let result = transact_channel::init(
         &server_config,
         &app_state.relayer_config,
-        &app_state.mystiko_config,
         server.providers.clone(),
         server.transaction_handler.clone(),
         server.token_price.clone(),
@@ -50,7 +49,6 @@ async fn init_chain_id_not_found() {
     let _ = transact_channel::init(
         &app_state.server_config,
         &relayer_config,
-        &app_state.mystiko_config,
         server.providers.clone(),
         server.transaction_handler.clone(),
         server.token_price.clone(),

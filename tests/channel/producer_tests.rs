@@ -12,7 +12,6 @@ async fn send_closed_channel() {
     let (senders, _) = transact_channel::init(
         &app_state.server_config,
         &app_state.relayer_config,
-        &app_state.mystiko_config,
         server.providers.clone(),
         server.transaction_handler.clone(),
         server.token_price.clone(),

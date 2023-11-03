@@ -20,7 +20,6 @@ pub mod transact_channel {
     use crate::handler::transaction::TransactionHandler;
     use anyhow::{bail, Result};
     use ethers_signers::{LocalWallet, Signer};
-    use mystiko_config::MystikoConfig;
     use mystiko_ethers::{
         DefaultProviderFactory, Provider, ProviderFactory, ProviderOptions, Providers, ProvidersOptions, HTTP_REGEX,
         WS_REGEX,
@@ -43,7 +42,6 @@ pub mod transact_channel {
     pub async fn init<P: Providers>(
         server_config: &ServerConfig,
         relayer_config: &RelayerConfig,
-        mystiko_config: &MystikoConfig,
         providers: Arc<P>,
         handler: Arc<TransactionHandler<SqlStatementFormatter, SqliteStorage>>,
         token_price: Arc<RwLock<TokenPrice>>,
@@ -81,13 +79,6 @@ pub mod transact_channel {
             // build tx manager
             let tx_manager = tx_builder.build(&provider).await?;
 
-            // create signer provider
-            let mystiko_chain_config = mystiko_config
-                .find_chain(chain_id)
-                .unwrap_or_else(|| panic!("chain id {} config not found in mystiko config", chain_id));
-            let signer_endpoint = mystiko_chain_config.signer_endpoint();
-            let signer_provider = create_signer_provider(signer_endpoint).await?;
-
             // found relayer chain config
             let relayer_chain_config = relayer_config
                 .find_chain_config(chain_id)
@@ -99,7 +90,6 @@ pub mod transact_channel {
                 main_asset_decimals: relayer_chain_config.asset_decimals(),
                 receiver,
                 providers: providers.clone(),
-                signer: Arc::new(signer_provider),
                 handler: handler.clone(),
                 token_price: token_price.clone(),
                 tx_manager,

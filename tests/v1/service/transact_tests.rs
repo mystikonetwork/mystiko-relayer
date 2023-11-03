@@ -424,7 +424,6 @@ async fn test_send_transaction_to_queue_failed_v1() {
     let (senders, _) = transact_channel::init(
         &server.app_state.server_config,
         &server.app_state.relayer_config,
-        &server.app_state.mystiko_config,
         server.providers.clone(),
         server.transaction_handler.clone(),
         server.token_price.clone(),
