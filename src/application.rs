@@ -83,7 +83,6 @@ pub async fn run_application<'a>(options: ApplicationOptions<'a>) -> Result<()> 
     let (senders, consumers) = transact_channel::init(
         &app_state.server_config,
         &app_state.relayer_config,
-        &app_state.mystiko_config,
         providers.clone(),
         transaction_handler.clone(),
         token_price.clone(),
