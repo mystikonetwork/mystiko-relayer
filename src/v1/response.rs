@@ -1,5 +1,5 @@
+use mystiko_protos::core::v1::SpendType;
 use mystiko_relayer_types::TransactStatus;
-use mystiko_types::SpendType;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
