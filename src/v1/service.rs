@@ -17,15 +17,15 @@ use ethers_middleware::providers::Middleware;
 use log::{debug, error, info};
 use mystiko_abi::commitment_pool::{G1Point, G2Point, Proof, TransactRequest};
 use mystiko_ethers::{ChainConfigProvidersOptions, ProviderPool, Providers};
+use mystiko_protos::core::v1::SpendType;
 use mystiko_relayer_types::response::success;
 use mystiko_relayer_types::{RegisterOptions, TransactRequestData, TransactStatus};
 use mystiko_server_utils::token_price::TokenPrice;
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::SqliteStorage;
-use mystiko_types::{AssetType};
+use mystiko_types::AssetType;
 use std::sync::Arc;
 use std::time::Duration;
-use mystiko_protos::core::v1::SpendType;
 use tokio::sync::RwLock;
 use validator::Validate;
 
