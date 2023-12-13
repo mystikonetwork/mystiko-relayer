@@ -4,12 +4,13 @@ use actix_web::web::Data;
 use actix_web::App;
 use ethereum_types::U256;
 use ethers_providers::MockProvider;
+use mystiko_protos::core::v1::SpendType;
 use mystiko_relayer::channel::transact_channel;
 use mystiko_relayer::error::ResponseError;
 use mystiko_relayer::service::{transact, transaction_status};
 use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
 use mystiko_relayer_types::{RelayTransactResponse, RelayTransactStatusResponse, TransactRequestData, TransactStatus};
-use mystiko_types::{BridgeType, CircuitType, SpendType};
+use mystiko_types::{BridgeType, CircuitType};
 use serial_test::file_serial;
 
 #[actix_rt::test]

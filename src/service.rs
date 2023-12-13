@@ -4,11 +4,12 @@ use crate::common::AppState;
 use crate::error::ResponseError;
 use crate::handler::account::AccountHandler;
 use crate::handler::transaction::TransactionHandler;
+use crate::mystiko_server_utils::tx_manager::TransactionMiddleware;
 use actix_web::web::{Data, Json, Path};
 use actix_web::{get, post, Responder};
 use anyhow::{bail, Result};
 use ethers_core::types::U256;
-use ethers_middleware::providers::Middleware;
+use ethers_signers::LocalWallet;
 use log::{debug, error};
 use mystiko_ethers::{ChainConfigProvidersOptions, ProviderPool, Providers};
 use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
@@ -19,6 +20,8 @@ use mystiko_relayer_types::{
 };
 use mystiko_server_utils::token_price::PriceMiddleware;
 use mystiko_server_utils::token_price::TokenPrice;
+use mystiko_server_utils::tx_manager::config::TxManagerConfig;
+use mystiko_server_utils::tx_manager::TxManagerBuilder;
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::SqliteStorage;
 use mystiko_types::AssetType;
@@ -29,7 +32,7 @@ use validator::Validate;
 
 #[get("/handshake")]
 pub async fn handshake(data: Data<AppState>) -> actix_web::Result<impl Responder, ResponseError> {
-    let api_version = data.server_config.settings.api_version.values().cloned().collect();
+    let api_version: Vec<String> = data.server_config.settings.api_version.values().cloned().collect();
     let package_version = env!("CARGO_PKG_VERSION");
     Ok(success(
         HandshakeResponse::builder()
@@ -134,6 +137,7 @@ pub async fn info(
             let minimum_gas_fee = if let Some(options) = &request.options {
                 let gas_price = gas_price_by_chain_id(chain_id, providers.clone()).await;
                 if gas_price.is_err() {
+                    error!("get chain id {} gas price error {}", chain_id, gas_price.unwrap_err());
                     return Err(ResponseError::GetGasPriceError { chain_id });
                 }
                 let gas_price = gas_price.unwrap();
@@ -319,6 +323,11 @@ pub async fn minimum_gas_fee(
 
 async fn gas_price_by_chain_id<P: Providers>(chain_id: u64, providers: Data<Arc<P>>) -> Result<U256> {
     let provider = providers.get_provider(chain_id).await?;
-    let gas_price = provider.get_gas_price().await?;
-    Ok(gas_price)
+    let tx_builder = TxManagerBuilder::builder()
+        .config(TxManagerConfig::new(None)?)
+        .chain_id(chain_id)
+        .wallet(LocalWallet::new(&mut rand::thread_rng()))
+        .build();
+    let tx_manager = tx_builder.build(&provider).await?;
+    Ok(tx_manager.gas_price(&provider).await?)
 }

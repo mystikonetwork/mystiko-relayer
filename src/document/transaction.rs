@@ -1,7 +1,8 @@
+use mystiko_protos::core::v1::SpendType;
 use mystiko_relayer_types::TransactStatus;
 use mystiko_storage::{DocumentData, IndexColumns};
 use mystiko_storage_macros::CollectionBuilder;
-use mystiko_types::{BridgeType, CircuitType, SpendType};
+use mystiko_types::{BridgeType, CircuitType};
 use num_bigint::BigUint;
 
 #[derive(CollectionBuilder, Clone, Debug, PartialEq)]

@@ -1,7 +1,8 @@
 use crate::common::TestServer;
+use mystiko_protos::core::v1::SpendType;
 use mystiko_relayer::channel::transact_channel;
 use mystiko_relayer_types::TransactRequestData;
-use mystiko_types::{AssetType, CircuitType, SpendType};
+use mystiko_types::{AssetType, CircuitType};
 use serial_test::file_serial;
 
 #[actix_rt::test]

@@ -2,6 +2,7 @@ use crate::common::TestServer;
 use actix_web::test::{call_and_read_body_json, init_service, TestRequest};
 use actix_web::web::Data;
 use actix_web::App;
+use mystiko_protos::core::v1::SpendType;
 use mystiko_relayer::database::Database;
 use mystiko_relayer::error::ResponseError;
 use mystiko_relayer::handler::transaction::TransactionHandler;
@@ -10,7 +11,7 @@ use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
 use mystiko_relayer_types::{RelayTransactStatusResponse, TransactRequestData, TransactStatus};
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::SqliteStorage;
-use mystiko_types::{BridgeType, CircuitType, SpendType};
+use mystiko_types::{BridgeType, CircuitType};
 use serial_test::file_serial;
 use std::sync::Arc;
 

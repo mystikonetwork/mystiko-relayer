@@ -12,6 +12,7 @@ use mystiko_abi::commitment_pool::TransactRequest;
 use mystiko_ethers::{
     ChainConfigProvidersOptions, ChainProvidersOptions, ProviderPool, ProviderWrapper, Providers, ProvidersOptions,
 };
+use mystiko_protos::core::v1::SpendType;
 use mystiko_relayer::channel::consumer::TransactionConsumer;
 use mystiko_relayer::channel::{transact_channel, TransactSendersMap};
 use mystiko_relayer::common::{init_app_state, AppState};
@@ -24,7 +25,7 @@ use mystiko_server_utils::token_price::config::TokenPriceConfig;
 use mystiko_server_utils::token_price::TokenPrice;
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::SqliteStorage;
-use mystiko_types::{BridgeType, CircuitType, SpendType};
+use mystiko_types::{BridgeType, CircuitType};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
