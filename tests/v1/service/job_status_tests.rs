@@ -4,6 +4,7 @@ use actix_web::web::Data;
 use actix_web::App;
 use ethers_core::abi::AbiEncode;
 use ethers_core::types::TxHash;
+use mystiko_protos::core::v1::SpendType;
 use mystiko_relayer::database::Database;
 use mystiko_relayer::error::ResponseError;
 use mystiko_relayer::handler::transaction::{TransactionHandler, UpdateTransactionOptions};
@@ -13,7 +14,7 @@ use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
 use mystiko_relayer_types::{TransactRequestData, TransactStatus};
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::SqliteStorage;
-use mystiko_types::{BridgeType, CircuitType, SpendType};
+use mystiko_types::{BridgeType, CircuitType};
 use std::sync::Arc;
 
 #[actix_rt::test]

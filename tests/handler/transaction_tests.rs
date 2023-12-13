@@ -1,7 +1,8 @@
 use crate::common::TestServer;
+use mystiko_protos::core::v1::SpendType;
 use mystiko_relayer::handler::transaction::UpdateTransactionOptions;
 use mystiko_relayer_types::{TransactRequestData, TransactStatus};
-use mystiko_types::{CircuitType, SpendType};
+use mystiko_types::CircuitType;
 
 #[actix_rt::test]
 async fn update_by_id() {

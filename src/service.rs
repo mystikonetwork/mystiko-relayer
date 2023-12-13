@@ -137,6 +137,7 @@ pub async fn info(
             let minimum_gas_fee = if let Some(options) = &request.options {
                 let gas_price = gas_price_by_chain_id(chain_id, providers.clone()).await;
                 if gas_price.is_err() {
+                    error!("get chain id {} gas price error {}", chain_id, gas_price.unwrap_err());
                     return Err(ResponseError::GetGasPriceError { chain_id });
                 }
                 let gas_price = gas_price.unwrap();
