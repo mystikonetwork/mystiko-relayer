@@ -2,8 +2,8 @@ use crate::channel::transact_channel;
 use crate::common::init_app_state;
 use crate::configs::{load_server_config, AccountConfig};
 use crate::database::init_sqlite_database;
-use crate::handler::account::AccountHandler;
-use crate::handler::transaction::TransactionHandler;
+use crate::handler::account::handler::Account;
+use crate::handler::transaction::Transaction;
 use crate::service::{handshake, info, transact, transaction_status};
 use crate::v1::service::{chain_status, job_status, transact_v1};
 use actix_cors::Cors;
@@ -60,7 +60,7 @@ pub async fn run_application<'a>(options: ApplicationOptions<'a>) -> Result<()> 
 
     // create account handler
     let account_handler = Arc::new(
-        AccountHandler::new(
+        Account::new(
             db.clone(),
             accounts.values().cloned().collect::<Vec<AccountConfig>>().as_slice(),
         )
@@ -68,7 +68,7 @@ pub async fn run_application<'a>(options: ApplicationOptions<'a>) -> Result<()> 
     );
 
     // create transaction handler
-    let transaction_handler = Arc::new(TransactionHandler::new(db.clone()));
+    let transaction_handler = Arc::new(Transaction::new(db.clone()));
 
     // init token price
     let token_price = Arc::new(RwLock::new(TokenPrice::new(

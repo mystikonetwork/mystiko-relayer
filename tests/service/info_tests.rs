@@ -6,7 +6,7 @@ use ethereum_types::U256;
 use ethers_providers::MockProvider;
 use mystiko_relayer::database::Database;
 use mystiko_relayer::error::ResponseError;
-use mystiko_relayer::handler::account::AccountHandler;
+use mystiko_relayer::handler::account::handler::Account;
 use mystiko_relayer::service::{info, minimum_gas_fee};
 use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
 use mystiko_relayer_types::{RegisterInfoRequest, RegisterInfoResponse, RegisterOptions};
@@ -420,7 +420,7 @@ async fn test_account_not_found_in_db() {
         SqliteStorage::from_memory().await.unwrap(),
     );
     database.migrate().await.unwrap();
-    server.account_handler = Arc::new(AccountHandler::new(Arc::new(database), &[]).await.unwrap());
+    server.account_handler = Arc::new(Account::new(Arc::new(database), &[]).await.unwrap());
 
     // init service
     let app = init_service(

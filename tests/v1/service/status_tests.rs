@@ -8,6 +8,7 @@ use mockito::Matcher;
 use mystiko_fs::read_file_bytes;
 use mystiko_relayer::database::Database;
 use mystiko_relayer::error::ResponseError;
+use mystiko_relayer::handler::account::handler::Account;
 use mystiko_relayer::handler::account::AccountHandler;
 use mystiko_relayer::v1::request::{ChainStatusOptions, ChainStatusRequest};
 use mystiko_relayer::v1::response::ChainStatusResponse;
@@ -352,7 +353,7 @@ async fn test_account_not_found_in_db_v1() {
         SqliteStorage::from_memory().await.unwrap(),
     );
     database.migrate().await.unwrap();
-    server.account_handler = Arc::new(AccountHandler::new(Arc::new(database), &[]).await.unwrap());
+    server.account_handler = Arc::new(Account::new(Arc::new(database), &[]).await.unwrap());
     // init service
     let app = init_service(
         App::new()

@@ -2,8 +2,9 @@ use crate::channel::transact_channel::find_producer_by_id_and_symbol;
 use crate::channel::TransactSendersMap;
 use crate::common::AppState;
 use crate::error::ResponseError;
+use crate::handler::account::handler::Account;
 use crate::handler::account::AccountHandler;
-use crate::handler::transaction::TransactionHandler;
+use crate::handler::transaction::{Transaction, TransactionHandler};
 use crate::mystiko_server_utils::tx_manager::TransactionMiddleware;
 use actix_web::web::{Data, Json, Path};
 use actix_web::{get, post, Responder};
@@ -46,7 +47,7 @@ pub async fn handshake(data: Data<AppState>) -> actix_web::Result<impl Responder
 pub async fn info(
     request: Json<RegisterInfoRequest>,
     data: Data<AppState>,
-    handler: Data<Arc<AccountHandler<SqlStatementFormatter, SqliteStorage>>>,
+    handler: Data<Arc<Account<SqlStatementFormatter, SqliteStorage>>>,
     token_price: Data<Arc<RwLock<TokenPrice>>>,
     providers: Data<Arc<ProviderPool<ChainConfigProvidersOptions>>>,
 ) -> actix_web::Result<impl Responder, ResponseError> {
@@ -186,7 +187,7 @@ pub async fn transact(
     request: Json<TransactRequestData>,
     data: Data<AppState>,
     senders: Data<TransactSendersMap>,
-    handler: Data<Arc<TransactionHandler<SqlStatementFormatter, SqliteStorage>>>,
+    handler: Data<Arc<Transaction<SqlStatementFormatter, SqliteStorage>>>,
 ) -> actix_web::Result<impl Responder, ResponseError> {
     // validate
     if let Err(err) = request.validate() {
@@ -235,7 +236,7 @@ pub async fn transact(
 #[get("/transaction/status/{id}")]
 pub async fn transaction_status(
     id: Path<String>,
-    handler: Data<Arc<TransactionHandler<SqlStatementFormatter, SqliteStorage>>>,
+    handler: Data<Arc<Transaction<SqlStatementFormatter, SqliteStorage>>>,
 ) -> actix_web::Result<impl Responder, ResponseError> {
     match handler.find_by_id(id.as_str()).await {
         Ok(Some(transaction)) => Ok(success(

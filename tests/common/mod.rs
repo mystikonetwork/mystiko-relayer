@@ -18,8 +18,8 @@ use mystiko_relayer::channel::{transact_channel, TransactSendersMap};
 use mystiko_relayer::common::{init_app_state, AppState};
 use mystiko_relayer::configs::{load_server_config, AccountConfig};
 use mystiko_relayer::database::Database;
-use mystiko_relayer::handler::account::AccountHandler;
-use mystiko_relayer::handler::transaction::TransactionHandler;
+use mystiko_relayer::handler::account::handler::Account;
+use mystiko_relayer::handler::transaction::Transaction;
 use mystiko_relayer_types::TransactRequestData;
 use mystiko_server_utils::token_price::config::TokenPriceConfig;
 use mystiko_server_utils::token_price::TokenPrice;
@@ -62,8 +62,8 @@ pub struct TestServer {
     pub app_state: AppState,
     pub senders: TransactSendersMap,
     pub consumers: Vec<TransactionConsumer<ProviderPool<ChainConfigProvidersOptions>>>,
-    pub account_handler: Arc<AccountHandler<SqlStatementFormatter, SqliteStorage>>,
-    pub transaction_handler: Arc<TransactionHandler<SqlStatementFormatter, SqliteStorage>>,
+    pub account_handler: Arc<Account<SqlStatementFormatter, SqliteStorage>>,
+    pub transaction_handler: Arc<Transaction<SqlStatementFormatter, SqliteStorage>>,
     pub token_price: Arc<RwLock<TokenPrice>>,
     pub providers: Arc<ProviderPool<ChainConfigProvidersOptions>>,
     pub mock_server: ServerGuard,
@@ -92,8 +92,8 @@ impl TestServer {
 
         // handler
         let accounts: Vec<AccountConfig> = app_state.server_config.accounts.values().cloned().collect();
-        let account_handler = Arc::new(AccountHandler::new(db.clone(), &accounts).await.unwrap());
-        let transaction_handler = Arc::new(TransactionHandler::new(db.clone()));
+        let account_handler = Arc::new(Account::new(db.clone(), &accounts).await.unwrap());
+        let transaction_handler = Arc::new(Transaction::new(db.clone()));
 
         // init mock token price
         let server = Server::new_async().await;

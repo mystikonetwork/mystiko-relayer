@@ -2,8 +2,9 @@ use crate::channel::transact_channel::find_producer_by_id_and_symbol;
 use crate::channel::TransactSendersMap;
 use crate::common::AppState;
 use crate::error::ResponseError;
+use crate::handler::account::handler::Account;
 use crate::handler::account::AccountHandler;
-use crate::handler::transaction::TransactionHandler;
+use crate::handler::transaction::{Transaction, TransactionHandler};
 use crate::service::minimum_gas_fee;
 use crate::v1::request::{ChainStatusRequest, TransactRequestV1, TransactionTypeV1};
 use crate::v1::response::{
@@ -33,7 +34,7 @@ use validator::Validate;
 pub async fn chain_status(
     request: Json<ChainStatusRequest>,
     data: Data<AppState>,
-    handler: Data<Arc<AccountHandler<SqlStatementFormatter, SqliteStorage>>>,
+    handler: Data<Arc<Account<SqlStatementFormatter, SqliteStorage>>>,
     token_price: Data<Arc<RwLock<TokenPrice>>>,
     providers: Data<Arc<ProviderPool<ChainConfigProvidersOptions>>>,
 ) -> actix_web::Result<impl Responder, ResponseError> {
@@ -177,7 +178,7 @@ pub async fn chain_status(
 #[get("/jobs/{id}")]
 pub async fn job_status(
     id: Path<String>,
-    handler: Data<Arc<TransactionHandler<SqlStatementFormatter, SqliteStorage>>>,
+    handler: Data<Arc<Transaction<SqlStatementFormatter, SqliteStorage>>>,
 ) -> actix_web::Result<impl Responder, ResponseError> {
     info!("api v1 version job status");
 
@@ -205,7 +206,7 @@ pub async fn transact_v1(
     request: Json<TransactRequestV1>,
     data: Data<AppState>,
     senders: Data<TransactSendersMap>,
-    handler: Data<Arc<TransactionHandler<SqlStatementFormatter, SqliteStorage>>>,
+    handler: Data<Arc<Transaction<SqlStatementFormatter, SqliteStorage>>>,
 ) -> actix_web::Result<impl Responder, ResponseError> {
     info!("api v1 version transact");
 

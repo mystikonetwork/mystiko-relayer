@@ -320,10 +320,12 @@ fn test_max_retry_update_transaction_status() {
 
         // run consumers
         for mut consumer in server.consumers {
-            consumer.handler = Arc::new(TransactionHandler::new(Arc::new(Database::new(
-                SqlStatementFormatter::sqlite(),
-                SqliteStorage::from_memory().await.unwrap(),
-            ))));
+            consumer.handler = Arc::new(mystiko_relayer::handler::transaction::Transaction::new(Arc::new(
+                Database::new(
+                    SqlStatementFormatter::sqlite(),
+                    SqliteStorage::from_memory().await.unwrap(),
+                ),
+            )));
             rt.spawn(async {
                 consumer.run().await;
             });

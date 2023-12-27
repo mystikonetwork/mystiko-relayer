@@ -1,6 +1,6 @@
 use crate::document::transaction::Transaction;
 use crate::error::RelayerServerError;
-use crate::handler::transaction::{TransactionHandler, UpdateTransactionOptions};
+use crate::handler::transaction::{handler, TransactionHandler, UpdateTransactionOptions};
 use crate::types::Result;
 use log::info;
 use mystiko_relayer_types::{TransactRequestData, TransactStatus};
@@ -13,14 +13,14 @@ use tokio::sync::mpsc::Sender;
 pub struct TransactionProducer {
     pub supported_erc20_tokens: Vec<String>,
     sender: Arc<Sender<(String, TransactRequestData)>>,
-    handler: Arc<TransactionHandler<SqlStatementFormatter, SqliteStorage>>,
+    handler: Arc<handler::Transaction<SqlStatementFormatter, SqliteStorage>>,
 }
 
 impl TransactionProducer {
     pub fn new(
         supported_erc20_tokens: Vec<String>,
         sender: Arc<Sender<(String, TransactRequestData)>>,
-        handler: Arc<TransactionHandler<SqlStatementFormatter, SqliteStorage>>,
+        handler: Arc<handler::Transaction<SqlStatementFormatter, SqliteStorage>>,
     ) -> Self {
         Self {
             supported_erc20_tokens,

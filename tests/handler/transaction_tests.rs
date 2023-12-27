@@ -1,5 +1,6 @@
 use crate::common::TestServer;
 use mystiko_protos::core::v1::SpendType;
+use mystiko_relayer::handler::transaction::TransactionHandler;
 use mystiko_relayer::handler::transaction::UpdateTransactionOptions;
 use mystiko_relayer_types::{TransactRequestData, TransactStatus};
 use mystiko_types::CircuitType;

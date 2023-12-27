@@ -11,6 +11,7 @@ use mockito::Matcher;
 use mystiko_fs::read_file_bytes;
 use mystiko_relayer::channel::transact_channel;
 use mystiko_relayer::error::ResponseError;
+use mystiko_relayer::handler::transaction::TransactionHandler;
 use mystiko_relayer::v1::request::{G1PointStruct, G2PointStruct, ProofStruct, TransactRequestV1, TransactionTypeV1};
 use mystiko_relayer::v1::response::TransactResponse;
 use mystiko_relayer::v1::service::{parse_transact_request, transact_v1};

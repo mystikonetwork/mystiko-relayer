@@ -7,7 +7,7 @@ use ethers_core::types::TxHash;
 use mystiko_protos::core::v1::SpendType;
 use mystiko_relayer::database::Database;
 use mystiko_relayer::error::ResponseError;
-use mystiko_relayer::handler::transaction::{TransactionHandler, UpdateTransactionOptions};
+use mystiko_relayer::handler::transaction::{Transaction, TransactionHandler, UpdateTransactionOptions};
 use mystiko_relayer::v1::response::JobStatusResponse;
 use mystiko_relayer::v1::service::job_status;
 use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
@@ -98,7 +98,7 @@ async fn test_db_error_v1() {
         SqlStatementFormatter::sqlite(),
         SqliteStorage::from_memory().await.unwrap(),
     );
-    let transaction_handler = TransactionHandler::new(Arc::new(database));
+    let transaction_handler = Transaction::new(Arc::new(database));
     server.transaction_handler = Arc::new(transaction_handler);
     let app = init_service(
         App::new()

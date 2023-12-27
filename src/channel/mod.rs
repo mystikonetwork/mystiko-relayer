@@ -17,7 +17,7 @@ pub mod transact_channel {
     use crate::channel::producer::TransactionProducer;
     use crate::channel::{TransactSendersMap, TransactSendersMapKey};
     use crate::configs::ServerConfig;
-    use crate::handler::transaction::TransactionHandler;
+    use crate::handler::transaction::handler;
     use anyhow::{bail, Result};
     use ethers_signers::{LocalWallet, Signer};
     use mystiko_ethers::{
@@ -43,10 +43,13 @@ pub mod transact_channel {
         server_config: &ServerConfig,
         relayer_config: &RelayerConfig,
         providers: Arc<P>,
-        handler: Arc<TransactionHandler<SqlStatementFormatter, SqliteStorage>>,
+        handler: Arc<handler::Transaction<SqlStatementFormatter, SqliteStorage>>,
         token_price: Arc<RwLock<TokenPrice>>,
         queue_capacity: usize,
-    ) -> Result<(TransactSendersMap, Vec<TransactionConsumer<P>>)> {
+    ) -> Result<(TransactSendersMap, Vec<TransactionConsumer<P>>)>
+    where
+        P: Providers,
+    {
         let mut transact_senders_map = HashMap::new();
         let mut consumers = Vec::new();
         for account in server_config.accounts.values() {

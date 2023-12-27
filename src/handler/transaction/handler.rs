@@ -1,7 +1,9 @@
 use crate::database::Database;
-use crate::document::transaction::{Transaction, TransactionColumn};
+use crate::document::transaction::{Transaction as DocumentTransaction, TransactionColumn};
 use crate::error::RelayerServerError;
+use crate::handler::transaction::TransactionHandler;
 use crate::types::Result;
+use async_trait::async_trait;
 use mystiko_protos::storage::v1::SubFilter;
 use mystiko_relayer_types::{TransactRequestData, TransactStatus};
 use mystiko_storage::{Document, StatementFormatter, Storage};
@@ -20,11 +22,57 @@ pub struct UpdateTransactionOptions {
 }
 
 #[derive(Debug, Clone)]
-pub struct TransactionHandler<F: StatementFormatter, S: Storage> {
+pub struct Transaction<F: StatementFormatter, S: Storage> {
     db: Arc<Database<F, S>>,
 }
 
-impl<F, S> TransactionHandler<F, S>
+#[async_trait]
+impl<F, S> TransactionHandler<Document<DocumentTransaction>> for Transaction<F, S>
+where
+    F: StatementFormatter + 'static,
+    S: Storage + 'static,
+{
+    type Error = RelayerServerError;
+
+    async fn create_by_request(&self, data: TransactRequestData) -> Result<Document<DocumentTransaction>> {
+        // convert request data to document transaction
+        let transaction = self.request_data_to_document_transaction(data)?;
+        self.db
+            .transactions
+            .insert(&transaction)
+            .await
+            .map_err(RelayerServerError::StorageError)
+    }
+
+    async fn find_by_id(&self, id: &str) -> Result<Option<Document<DocumentTransaction>>> {
+        self.db
+            .transactions
+            .find_by_id(id)
+            .await
+            .map_err(RelayerServerError::StorageError)
+    }
+
+    async fn update_by_id(
+        &self,
+        id: &str,
+        options: &UpdateTransactionOptions,
+    ) -> Result<Option<Document<DocumentTransaction>>> {
+        self.update(self.find_by_id(id).await?, options).await
+    }
+
+    async fn is_repeated_transaction(&self, signature: &str) -> Result<bool> {
+        let query_filter = SubFilter::equal(TransactionColumn::Signature, signature);
+        let transactions = self.db.transactions.find(query_filter).await?;
+        for transaction in transactions {
+            if transaction.data.status != TransactStatus::Failed {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+}
+
+impl<F, S> Transaction<F, S>
 where
     F: StatementFormatter,
     S: Storage,
@@ -33,8 +81,8 @@ where
         Self { db }
     }
 
-    pub async fn create_by_request(&self, data: TransactRequestData) -> Result<Document<Transaction>> {
-        let transaction = Transaction {
+    fn request_data_to_document_transaction(&self, data: TransactRequestData) -> Result<DocumentTransaction> {
+        Ok(DocumentTransaction {
             chain_id: data.chain_id,
             spend_type: data.spend_type,
             bridge_type: data.bridge_type,
@@ -97,46 +145,14 @@ where
             random_auditing_public_key: u256_to_biguint(&data.contract_param.random_auditing_public_key),
             error_message: None,
             transaction_hash: None,
-        };
-        self.db
-            .transactions
-            .insert(&transaction)
-            .await
-            .map_err(RelayerServerError::StorageError)
-    }
-
-    pub async fn find_by_id(&self, id: &str) -> Result<Option<Document<Transaction>>> {
-        self.db
-            .transactions
-            .find_by_id(id)
-            .await
-            .map_err(RelayerServerError::StorageError)
-    }
-
-    pub async fn update_by_id(
-        &self,
-        id: &str,
-        options: &UpdateTransactionOptions,
-    ) -> Result<Option<Document<Transaction>>> {
-        self.update(self.find_by_id(id).await?, options).await
-    }
-
-    pub async fn is_repeated_transaction(&self, signature: &str) -> Result<bool> {
-        let query_filter = SubFilter::equal(TransactionColumn::Signature, signature);
-        let transactions = self.db.transactions.find(query_filter).await?;
-        for transaction in transactions {
-            if transaction.data.status != TransactStatus::Failed {
-                return Ok(true);
-            }
-        }
-        Ok(false)
+        })
     }
 
     async fn update(
         &self,
-        existing_transaction: Option<Document<Transaction>>,
+        existing_transaction: Option<Document<DocumentTransaction>>,
         options: &UpdateTransactionOptions,
-    ) -> Result<Option<Document<Transaction>>> {
+    ) -> Result<Option<Document<DocumentTransaction>>> {
         if let Some(mut existing_transaction) = existing_transaction {
             let mut has_update = false;
             if let Some(status) = &options.status {

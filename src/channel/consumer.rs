@@ -1,4 +1,4 @@
-use crate::handler::transaction::{TransactionHandler, UpdateTransactionOptions};
+use crate::handler::transaction::{Transaction, TransactionHandler, UpdateTransactionOptions};
 use anyhow::{bail, Result};
 use ethers_core::abi::{AbiEncode, Address};
 use ethers_core::types::{Bytes, TxHash, U256};
@@ -29,7 +29,7 @@ pub struct TransactionConsumer<P: Providers = Box<dyn Providers>> {
     pub main_asset_decimals: u32,
     pub receiver: Receiver<(String, TransactRequestData)>,
     pub providers: Arc<P>,
-    pub handler: Arc<TransactionHandler<SqlStatementFormatter, SqliteStorage>>,
+    pub handler: Arc<Transaction<SqlStatementFormatter, SqliteStorage>>,
     pub token_price: Arc<RwLock<TokenPrice>>,
     pub tx_manager: TxManager<ProviderWrapper<Box<dyn JsonRpcClientWrapper>>>,
 }

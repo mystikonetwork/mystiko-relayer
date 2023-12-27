@@ -5,7 +5,7 @@ use actix_web::App;
 use mystiko_protos::core::v1::SpendType;
 use mystiko_relayer::database::Database;
 use mystiko_relayer::error::ResponseError;
-use mystiko_relayer::handler::transaction::TransactionHandler;
+use mystiko_relayer::handler::transaction::{Transaction, TransactionHandler};
 use mystiko_relayer::service::transaction_status;
 use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
 use mystiko_relayer_types::{RelayTransactStatusResponse, TransactRequestData, TransactStatus};
@@ -92,7 +92,7 @@ async fn test_db_error() {
         SqlStatementFormatter::sqlite(),
         SqliteStorage::from_memory().await.unwrap(),
     );
-    let transaction_handler = TransactionHandler::new(Arc::new(database));
+    let transaction_handler = Transaction::new(Arc::new(database));
     server.transaction_handler = Arc::new(transaction_handler);
     // init service
     let app = init_service(
