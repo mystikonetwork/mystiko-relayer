@@ -1,9 +1,9 @@
-use crate::configs::AccountConfig;
+use crate::configs::account::AccountConfig;
+use crate::database::account::{Account as DocumentAccount, AccountColumn};
 use crate::database::Database;
-use crate::document::account::{Account as DocumentAccount, AccountColumn};
 use crate::error::RelayerServerError;
 use crate::handler::account::AccountHandler;
-use crate::types::Result;
+use crate::handler::types::Result;
 use async_trait::async_trait;
 use log::debug;
 use mystiko_protos::storage::v1::SubFilter;

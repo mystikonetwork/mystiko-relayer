@@ -1,8 +1,8 @@
+use crate::database::transaction::{Transaction as DocumentTransaction, TransactionColumn};
 use crate::database::Database;
-use crate::document::transaction::{Transaction as DocumentTransaction, TransactionColumn};
 use crate::error::RelayerServerError;
 use crate::handler::transaction::TransactionHandler;
-use crate::types::Result;
+use crate::handler::types::Result;
 use async_trait::async_trait;
 use mystiko_protos::storage::v1::SubFilter;
 use mystiko_relayer_types::{TransactRequestData, TransactStatus};

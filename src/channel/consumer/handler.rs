@@ -1,5 +1,9 @@
-use crate::handler::transaction::{Transaction, TransactionHandler, UpdateTransactionOptions};
+use crate::channel::consumer::ConsumerHandler;
+use crate::database::transaction::Transaction as DocumentTransaction;
+use crate::error::RelayerServerError;
+use crate::handler::transaction::{TransactionHandler, UpdateTransactionOptions};
 use anyhow::{bail, Result};
+use async_trait::async_trait;
 use ethers_core::abi::{AbiEncode, Address};
 use ethers_core::types::{Bytes, TxHash, U256};
 use log::{debug, error, info};
@@ -10,8 +14,7 @@ use mystiko_server_utils::token_price::PriceMiddleware;
 use mystiko_server_utils::token_price::TokenPrice;
 use mystiko_server_utils::tx_manager::TransactionData;
 use mystiko_server_utils::tx_manager::{TransactionMiddleware, TxManager};
-use mystiko_storage::SqlStatementFormatter;
-use mystiko_storage_sqlite::SqliteStorage;
+use mystiko_storage::Document;
 use std::ops::{Div, Mul};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -23,52 +26,67 @@ use tokio::time::sleep;
 const MAX_GAS_PRICE_MULTIPLIER_LEGACY: u64 = 1;
 const MAX_GAS_PRICE_MULTIPLIER_1559: u64 = 2;
 
-pub struct TransactionConsumer<P: Providers = Box<dyn Providers>> {
+pub struct TransactionConsumer<
+    P: Providers = Box<dyn Providers>,
+    T: TransactionHandler<Document<DocumentTransaction>> = Box<
+        dyn TransactionHandler<Document<DocumentTransaction>, Error = RelayerServerError>,
+    >,
+    TP: PriceMiddleware = TokenPrice,
+> {
     pub chain_id: u64,
     pub main_asset_symbol: String,
     pub main_asset_decimals: u32,
     pub receiver: Receiver<(String, TransactRequestData)>,
     pub providers: Arc<P>,
-    pub handler: Arc<Transaction<SqlStatementFormatter, SqliteStorage>>,
-    pub token_price: Arc<RwLock<TokenPrice>>,
+    pub handler: Arc<T>,
+    pub token_price: Arc<RwLock<TP>>,
     pub tx_manager: TxManager<ProviderWrapper<Box<dyn JsonRpcClientWrapper>>>,
 }
 
-impl<P> TransactionConsumer<P>
+#[async_trait]
+impl<P, T, TP> ConsumerHandler for TransactionConsumer<P, T, TP>
 where
     P: Providers,
+    T: TransactionHandler<Document<DocumentTransaction>>,
+    TP: PriceMiddleware,
 {
-    pub async fn run(mut self) {
+    async fn consume(&mut self) {
         let chain_id = self.chain_id;
         info!("Launching a consumer for chain_id: {}", chain_id);
-        loop {
-            if let Some((id, data)) = self.receiver.recv().await {
-                info!(
-                    "consumer receive a transaction(id = {}, chain_id = {}, spend_type = {:?})",
-                    id, self.chain_id, data.spend_type
-                );
 
-                let options = match self.consume(id.as_str(), &data).await {
-                    Ok(tx_hash) => UpdateTransactionOptions::builder()
-                        .status(TransactStatus::Succeeded)
-                        .transaction_hash(tx_hash)
-                        .build(),
-                    Err(err) => {
-                        error!("consume transaction error: {}", err);
-                        UpdateTransactionOptions::builder()
-                            .status(TransactStatus::Failed)
-                            .error_message(err.to_string())
-                            .build()
-                    }
-                };
+        while let Some((id, data)) = self.receiver.recv().await {
+            info!(
+                "consumer receive a transaction(id = {}, chain_id = {}, spend_type = {:?})",
+                id, self.chain_id, data.spend_type
+            );
 
-                // update database
-                self.update_transaction_status(id.as_str(), options).await;
-            }
+            let options = match self.send_tx(id.as_str(), &data).await {
+                Ok(tx_hash) => UpdateTransactionOptions::builder()
+                    .status(TransactStatus::Succeeded)
+                    .transaction_hash(tx_hash)
+                    .build(),
+                Err(err) => {
+                    error!("consume transaction error: {}", err);
+                    UpdateTransactionOptions::builder()
+                        .status(TransactStatus::Failed)
+                        .error_message(err.to_string())
+                        .build()
+                }
+            };
+
+            // update database
+            self.update_transaction_status(id.as_str(), options).await;
         }
     }
+}
 
-    async fn consume(&mut self, uuid: &str, data: &TransactRequestData) -> Result<String> {
+impl<P, T, TP> TransactionConsumer<P, T, TP>
+where
+    P: Providers,
+    T: TransactionHandler<Document<DocumentTransaction>>,
+    TP: PriceMiddleware,
+{
+    async fn send_tx(&mut self, uuid: &str, data: &TransactRequestData) -> Result<String> {
         // get provider
         let provider = self.providers.get_provider(data.chain_id).await?;
         // parse address to Address
@@ -242,7 +260,7 @@ where
         loop {
             if let Err(err) = self.handler.update_by_id(uuid, &options).await {
                 error!(
-                    "Failed to update transaction(id = {}) to status {:?}: {}",
+                    "Failed to update transaction(id = {}) to status {:?}: {:?}",
                     uuid, &options.status, err
                 );
 

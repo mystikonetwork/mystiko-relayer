@@ -61,7 +61,12 @@ pub const ARRAY_QUEUE_CAPACITY: usize = 10;
 pub struct TestServer {
     pub app_state: AppState,
     pub senders: TransactSendersMap,
-    pub consumers: Vec<TransactionConsumer<ProviderPool<ChainConfigProvidersOptions>>>,
+    pub consumers: Vec<
+        TransactionConsumer<
+            ProviderPool<ChainConfigProvidersOptions>,
+            Transaction<SqlStatementFormatter, SqliteStorage>,
+        >,
+    >,
     pub account_handler: Arc<Account<SqlStatementFormatter, SqliteStorage>>,
     pub transaction_handler: Arc<Transaction<SqlStatementFormatter, SqliteStorage>>,
     pub token_price: Arc<RwLock<TokenPrice>>,

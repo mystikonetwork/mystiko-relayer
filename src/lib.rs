@@ -37,12 +37,9 @@ extern crate validator;
 
 pub mod application;
 pub mod channel;
-pub mod common;
 pub mod configs;
+pub mod context;
 pub mod database;
-pub mod document;
 pub mod error;
 pub mod handler;
 pub mod service;
-pub mod types;
-pub mod v1;

@@ -9,7 +9,6 @@ use mystiko_fs::read_file_bytes;
 use mystiko_relayer::database::Database;
 use mystiko_relayer::error::ResponseError;
 use mystiko_relayer::handler::account::handler::Account;
-use mystiko_relayer::handler::account::AccountHandler;
 use mystiko_relayer::v1::request::{ChainStatusOptions, ChainStatusRequest};
 use mystiko_relayer::v1::response::ChainStatusResponse;
 use mystiko_relayer::v1::service::chain_status;

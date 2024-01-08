@@ -1,18 +1,15 @@
+use crate::configs::account::AccountConfig;
 use anyhow::{bail, Result};
-use config::FileFormat;
-use dotenv::dotenv;
 use log::debug;
 use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
 use mystiko_types::NetworkType;
-use mystiko_utils::config::{load_config, ConfigFile, ConfigLoadOptions};
 use mystiko_validator::validate::is_api_version;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::PathBuf;
 use typed_builder::TypedBuilder;
 use validator::Validate;
 
-#[derive(TypedBuilder, Validate, Serialize, Deserialize, Debug, Clone)]
+#[derive(TypedBuilder, Validate, Serialize, Deserialize, Debug, Clone, Default)]
 #[builder(field_defaults(setter(into)))]
 pub struct ServerConfig {
     #[validate]
@@ -29,13 +26,7 @@ pub struct ServerConfig {
     pub options: Options,
 }
 
-impl Default for ServerConfig {
-    fn default() -> Self {
-        Self::builder().build()
-    }
-}
-
-#[derive(TypedBuilder, Validate, Serialize, Deserialize, Debug, Clone)]
+#[derive(TypedBuilder, Validate, Serialize, Deserialize, Debug, Clone, Default)]
 #[builder(field_defaults(setter(into)))]
 pub struct Settings {
     #[builder(default)]
@@ -61,40 +52,7 @@ pub struct Settings {
     pub coin_market_cap_api_key: String,
 }
 
-impl Default for Settings {
-    fn default() -> Self {
-        Self::builder().build()
-    }
-}
-
-#[derive(TypedBuilder, Validate, Serialize, Deserialize, Debug, Clone)]
-#[builder(field_defaults(setter(into)))]
-pub struct AccountConfig {
-    #[builder(default)]
-    #[validate(range(min = 1))]
-    pub chain_id: u64,
-    #[builder(default)]
-    pub private_key: String,
-    #[serde(default = "default_available")]
-    #[builder(default = default_available())]
-    pub available: bool,
-    #[builder(default)]
-    pub supported_erc20_tokens: HashMap<u16, String>,
-    #[serde(default)]
-    #[builder(default)]
-    pub balance_alarm_threshold: f64,
-    #[serde(default)]
-    #[builder(default)]
-    pub balance_check_interval_ms: u64,
-}
-
-impl Default for AccountConfig {
-    fn default() -> Self {
-        Self::builder().build()
-    }
-}
-
-#[derive(TypedBuilder, Validate, Serialize, Deserialize, Debug, Clone)]
+#[derive(TypedBuilder, Validate, Serialize, Deserialize, Debug, Clone, Default)]
 #[builder(field_defaults(setter(into)))]
 pub struct Options {
     #[serde(default)]
@@ -109,12 +67,6 @@ pub struct Options {
     #[serde(default)]
     #[builder(default)]
     pub relayer_remote_config_base_url: Option<String>,
-}
-
-impl Default for Options {
-    fn default() -> Self {
-        Self::builder().build()
-    }
 }
 
 impl ServerConfig {
@@ -169,20 +121,6 @@ impl ServerConfig {
     }
 }
 
-pub fn load_server_config(path: Option<&str>) -> Result<ServerConfig> {
-    let options = if let Some(path) = path {
-        let format = FileFormat::Toml;
-        ConfigLoadOptions::builder()
-            .paths(ConfigFile::builder().path(path).format(format).build())
-            .env_prefix("RELAYER_CONFIG")
-            .build()
-    } else {
-        dotenv().ok();
-        ConfigLoadOptions::builder().env_prefix("MYSTIKO_RELAYER").build()
-    };
-    load_config::<PathBuf, ServerConfig>(&options)
-}
-
 fn default_log_level() -> String {
     "info".to_string()
 }
@@ -193,8 +131,4 @@ fn default_host() -> String {
 
 fn default_port() -> u16 {
     8090
-}
-
-fn default_available() -> bool {
-    true
 }
