@@ -20,7 +20,7 @@ use mystiko_types::NetworkType;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Context {
     pub server_config: Arc<ServerConfig>,
     pub relayer_config: Arc<RelayerConfig>,

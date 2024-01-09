@@ -40,7 +40,7 @@ pub async fn handshake(context: Data<Arc<Context>>) -> actix_web::Result<impl Re
     ))
 }
 
-fn find_sender(
+pub fn find_sender(
     senders: Data<Arc<HashSet<SenderInfo>>>,
     chain_id: u64,
     asset_symbol: &str,
