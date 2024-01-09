@@ -73,14 +73,14 @@ fn find_sender(
     None
 }
 
-async fn gas_price_by_chain_id<P: Providers>(chain_id: u64, providers: Arc<P>) -> Result<U256> {
+async fn gas_price_by_chain_id<P: Providers>(chain_id: u64, providers: Arc<P>, is_tx_eip1559: bool) -> Result<U256> {
     let provider = providers.get_provider(chain_id).await?;
     let tx_builder = TxManagerBuilder::builder()
         .config(TxManagerConfig::new(None)?)
         .chain_id(chain_id)
         .wallet(LocalWallet::new(&mut rand::thread_rng()))
         .build();
-    let tx_manager = tx_builder.build(&provider).await?;
+    let tx_manager = tx_builder.build(Some(is_tx_eip1559), &provider).await?;
     Ok(tx_manager.gas_price(&provider).await?)
 }
 

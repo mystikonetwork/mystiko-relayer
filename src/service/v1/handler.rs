@@ -13,7 +13,7 @@ use actix_web::{get, post, Responder};
 use log::{debug, error, info};
 use mystiko_relayer_types::response::success;
 use mystiko_relayer_types::{RegisterOptions, TransactStatus};
-use mystiko_types::AssetType;
+use mystiko_types::{AssetType, TransactionType};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
@@ -28,9 +28,23 @@ pub async fn chain_status(
 
     let chain_id = request.chain_id;
     let relayer_config = &context.relayer_config;
+    let mystiko_config = &context.mystiko_config;
     let handler = &context.account_handler;
     let token_price = &context.token_price;
     let providers = &context.providers;
+
+    let is_tx_eip1559 = match mystiko_config.find_chain(chain_id) {
+        None => {
+            return Ok(success(ChainStatusResponse {
+                support: false,
+                available: false,
+                chain_id,
+                relayer_contract_address: None,
+                contracts: None,
+            }));
+        }
+        Some(chain_config) => chain_config.transaction_type() == &TransactionType::Eip1559,
+    };
 
     return if let Some(relayer_chain_config) = relayer_config.find_chain_config(chain_id) {
         let accounts = handler.find_by_chain_id(chain_id).await.map_err(|e| {
@@ -113,7 +127,7 @@ pub async fn chain_status(
                 continue;
             }
             let minimum_gas_fee = if let Some(options) = &request.options {
-                let gas_price = gas_price_by_chain_id(chain_id, providers.clone()).await;
+                let gas_price = gas_price_by_chain_id(chain_id, providers.clone(), is_tx_eip1559).await;
                 if gas_price.is_err() {
                     return Err(ResponseError::GetGasPriceError { chain_id });
                 }

@@ -34,6 +34,7 @@ pub struct TransactionConsumer<
     TP: PriceMiddleware = TokenPrice,
 > {
     pub chain_id: u64,
+    pub is_tx_eip1559: bool,
     pub main_asset_symbol: String,
     pub main_asset_decimals: u32,
     pub receiver: Receiver<(String, TransactRequestData)>,
@@ -187,7 +188,7 @@ where
 
         // max gas price_ref = relayer_fee_amount_main / estimate_gas
         let max_gas_price_ref = relayer_fee_amount_main.div(estimate_gas);
-        let max_gas_price_multiplier = if self.tx_manager.support_1559() {
+        let max_gas_price_multiplier = if self.is_tx_eip1559 {
             MAX_GAS_PRICE_MULTIPLIER_1559
         } else {
             MAX_GAS_PRICE_MULTIPLIER_LEGACY
