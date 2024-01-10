@@ -20,6 +20,7 @@ ethereum-types = { version = "0.14.1" }
 ethers-core = { version = "2.0.4" }
 ethers-middleware = { version = "2.0.4" }
 ethers-signers = { version = "2.0.4" }
+ethers-providers = { version = "2.0.4", features = ["ws"] }
 hex = { version = "0.4.3" }
 log = { version = "0.4.17" }
 mystiko_abi = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "ca2b4a9" }
@@ -29,7 +30,7 @@ mystiko_protos = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git",
 mystiko_validator = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "ca2b4a9" }
 mystiko_relayer_config = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "ca2b4a9", features = ["fs"] }
 mystiko_relayer_types = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "ca2b4a9" }
-mystiko_server_utils = { git = "ssh://git@github.com/mystikonetwork/mystiko-backend.git", rev = "5e48e46" }
+mystiko_server_utils = { git = "ssh://git@github.com/mystikonetwork/mystiko-backend.git", branch = "marco-dev" }
 mystiko_storage = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "ca2b4a9" }
 mystiko_storage_macros = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "ca2b4a9" }
 mystiko_storage_sqlite = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "ca2b4a9" }
@@ -53,7 +54,6 @@ validator = { version = "0.16.0", features = ["derive"] }
 actix-http = { version = "3.3.1" }
 actix-rt = { version = "2.8.0" }
 async-trait = { version = "0.1.64" }
-ethers-providers = { version = "2.0.4", features = ["ws"] }
 serial_test = { version = "2.0.0", features = ["file_locks"] }
 mockall = { version = "0.11.4" }
 mockito = { version = "1.1.0" }

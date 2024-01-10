@@ -17,7 +17,7 @@ use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
 use mystiko_relayer_types::response::success;
 use mystiko_relayer_types::HandshakeResponse;
 use mystiko_relayer_types::RegisterOptions;
-use mystiko_server_utils::token_price::{PriceMiddleware, TokenPrice};
+use mystiko_server_utils::token_price::PriceMiddleware;
 use mystiko_server_utils::tx_manager::config::TxManagerConfig;
 use mystiko_server_utils::tx_manager::{TransactionMiddleware, TxManagerBuilder};
 use mystiko_types::AssetType;
@@ -88,7 +88,7 @@ async fn minimum_gas_fee(
     relayer_config: &RelayerConfig,
     chain_id: u64,
     gas_price: U256,
-    token: Arc<RwLock<TokenPrice>>,
+    token: Arc<RwLock<Box<dyn PriceMiddleware>>>,
     options: &RegisterOptions,
 ) -> Result<U256> {
     let asset_symbol = &options.asset_symbol;

@@ -84,7 +84,7 @@ impl Channel {
             // get or create provider
             let provider = context.providers.get_provider(chain_id).await?;
             // build tx manager
-            let tx_manager = tx_builder.build(Some(is_tx_eip1559), &provider).await?;
+            let tx_manager = Box::new(tx_builder.build(Some(is_tx_eip1559), &provider).await?);
 
             // found relayer chain config
             let relayer_chain_config = context

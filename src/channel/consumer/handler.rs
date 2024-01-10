@@ -11,9 +11,8 @@ use mystiko_abi::commitment_pool::{CommitmentPool, TransactRequest};
 use mystiko_ethers::{JsonRpcClientWrapper, Provider, ProviderWrapper, Providers};
 use mystiko_relayer_types::{TransactRequestData, TransactStatus};
 use mystiko_server_utils::token_price::PriceMiddleware;
-use mystiko_server_utils::token_price::TokenPrice;
 use mystiko_server_utils::tx_manager::TransactionData;
-use mystiko_server_utils::tx_manager::{TransactionMiddleware, TxManager};
+use mystiko_server_utils::tx_manager::TransactionMiddleware;
 use mystiko_storage::Document;
 use std::ops::{Div, Mul};
 use std::str::FromStr;
@@ -31,7 +30,10 @@ pub struct TransactionConsumer<
     T: TransactionHandler<Document<DocumentTransaction>> = Box<
         dyn TransactionHandler<Document<DocumentTransaction>, Error = RelayerServerError>,
     >,
-    TP: PriceMiddleware = TokenPrice,
+    TP: PriceMiddleware = Box<dyn PriceMiddleware>,
+    TX: TransactionMiddleware<ProviderWrapper<Box<dyn JsonRpcClientWrapper>>> = Box<
+        dyn TransactionMiddleware<ProviderWrapper<Box<dyn JsonRpcClientWrapper>>>,
+    >,
 > {
     pub chain_id: u64,
     pub is_tx_eip1559: bool,
@@ -41,15 +43,16 @@ pub struct TransactionConsumer<
     pub providers: Arc<P>,
     pub handler: Arc<T>,
     pub token_price: Arc<RwLock<TP>>,
-    pub tx_manager: TxManager<ProviderWrapper<Box<dyn JsonRpcClientWrapper>>>,
+    pub tx_manager: TX,
 }
 
 #[async_trait]
-impl<P, T, TP> ConsumerHandler for TransactionConsumer<P, T, TP>
+impl<P, T, TP, TX> ConsumerHandler for TransactionConsumer<P, T, TP, TX>
 where
     P: Providers,
     T: TransactionHandler<Document<DocumentTransaction>>,
     TP: PriceMiddleware,
+    TX: TransactionMiddleware<ProviderWrapper<Box<dyn JsonRpcClientWrapper>>>,
 {
     async fn consume(&mut self) {
         let chain_id = self.chain_id;
@@ -81,11 +84,12 @@ where
     }
 }
 
-impl<P, T, TP> TransactionConsumer<P, T, TP>
+impl<P, T, TP, TX> TransactionConsumer<P, T, TP, TX>
 where
     P: Providers,
     T: TransactionHandler<Document<DocumentTransaction>>,
     TP: PriceMiddleware,
+    TX: TransactionMiddleware<ProviderWrapper<Box<dyn JsonRpcClientWrapper>>>,
 {
     async fn send_tx(&mut self, uuid: &str, data: &TransactRequestData) -> Result<String> {
         // get provider

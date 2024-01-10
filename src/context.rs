@@ -13,7 +13,7 @@ use mystiko_ethers::{ChainConfigProvidersOptions, ProviderPool, Providers};
 use mystiko_protos::common::v1::ConfigOptions;
 use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
 use mystiko_server_utils::token_price::config::TokenPriceConfig;
-use mystiko_server_utils::token_price::TokenPrice;
+use mystiko_server_utils::token_price::{PriceMiddleware, TokenPrice};
 use mystiko_storage::{Document, SqlStatementFormatter};
 use mystiko_storage_sqlite::SqliteStorage;
 use mystiko_types::NetworkType;
@@ -29,7 +29,7 @@ pub struct Context {
     pub transaction_handler:
         Arc<Box<dyn TransactionHandler<Document<DocumentTransaction>, Error = RelayerServerError>>>,
     pub account_handler: Arc<Box<dyn AccountHandler<Document<DocumentAccount>, Error = RelayerServerError>>>,
-    pub token_price: Arc<RwLock<TokenPrice>>,
+    pub token_price: Arc<RwLock<Box<dyn PriceMiddleware>>>,
 }
 
 impl Context {
@@ -72,13 +72,13 @@ impl Context {
                 >);
 
         // init token price
-        let token_price = Arc::new(RwLock::new(TokenPrice::new(
+        let token_price = Arc::new(RwLock::new(Box::new(TokenPrice::new(
             &TokenPriceConfig::new(
                 serde_json::to_string(&server_config.settings.network_type)?.as_str(),
                 None,
             )?,
             &server_config.settings.coin_market_cap_api_key,
-        )?));
+        )?) as Box<dyn PriceMiddleware>));
 
         Ok(Self {
             server_config,
