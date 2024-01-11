@@ -71,7 +71,7 @@ where
                     .collect(),
                 balance_alarm_threshold: account.balance_alarm_threshold,
                 balance_check_interval_ms: account.balance_check_interval_ms,
-                insufficient_balances: true,
+                insufficient_balances: false,
             };
             docs.push(doc);
         }

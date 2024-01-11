@@ -135,7 +135,7 @@ pub async fn chain_status(
                 debug!("chain id {} gas prices {:?}", chain_id, gas_price);
 
                 let minimum_gas_fee = minimum_gas_fee(
-                    &relayer_config,
+                    relayer_config,
                     chain_id,
                     gas_price,
                     token_price.clone(),

@@ -133,7 +133,7 @@ pub async fn info(
                 debug!("chain id {} gas prices {:?}", chain_id, gas_price);
 
                 let minimum_gas_fee =
-                    minimum_gas_fee(&relayer_config, chain_id, gas_price, token_price.clone(), options).await;
+                    minimum_gas_fee(relayer_config, chain_id, gas_price, token_price.clone(), options).await;
                 if minimum_gas_fee.is_err() {
                     error!("Failed to get minimum gas fee: {:?}", minimum_gas_fee.unwrap_err());
                     return Err(ResponseError::GetMinimumGasFeeFailed);

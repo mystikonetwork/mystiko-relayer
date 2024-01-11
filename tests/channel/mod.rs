@@ -1,9 +1,7 @@
-use crate::common::create_default_context;
 use async_trait::async_trait;
 use ethers_providers::ProviderError;
 use mockall::mock;
 use mystiko_ethers::{JsonRpcClientWrapper, JsonRpcParams, Provider};
-use mystiko_relayer::channel::Channel;
 use mystiko_relayer_types::TransactRequestData;
 use std::sync::Arc;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
@@ -38,9 +36,13 @@ mock! {
     }
 }
 
-fn create_default_sender_and_receiver() -> (
-    Sender<(String, TransactRequestData)>,
-    Receiver<(String, TransactRequestData)>,
-) {
-    channel::<(String, TransactRequestData)>(10)
+struct MockSenderAndReceiver {
+    sender: Sender<(String, TransactRequestData)>,
+    receiver: Receiver<(String, TransactRequestData)>,
+}
+
+#[warn(clippy::type_complexity)]
+fn create_default_sender_and_receiver() -> MockSenderAndReceiver {
+    let (sender, receiver) = channel::<(String, TransactRequestData)>(10);
+    MockSenderAndReceiver { sender, receiver }
 }

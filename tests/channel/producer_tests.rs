@@ -1,47 +1,18 @@
 use crate::channel::create_default_sender_and_receiver;
-use crate::common::create_default_context;
+use crate::common::{default_transact_request_data, default_transaction};
 use crate::handler::MockTransactions;
-use actix_web::web::Data;
 use mystiko_protos::core::v1::SpendType;
 use mystiko_relayer::channel::producer::handler::TransactionProducer;
 use mystiko_relayer::channel::producer::ProducerHandler;
-use mystiko_relayer::channel::Channel;
-use mystiko_relayer::database::transaction::Transaction;
-use mystiko_relayer::service::find_sender;
 use mystiko_relayer_types::TransactRequestData;
 use mystiko_storage::Document;
-use mystiko_types::{AssetType, CircuitType};
-use serial_test::file_serial;
+use mystiko_types::CircuitType;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 use typed_builder::TypedBuilder;
 
 #[actix_rt::test]
-#[file_serial]
-async fn producer_send_success() {
-    let context = create_default_context().await;
-    let channel = Channel::new(Arc::new(context)).await.unwrap();
-    let senders = Data::new(Arc::new(channel.senders));
-    let sender = find_sender(senders, 5, "Mtt", AssetType::Erc20).unwrap();
-
-    let result = sender
-        .send(TransactRequestData {
-            contract_param: Default::default(),
-            spend_type: SpendType::Transfer,
-            bridge_type: Default::default(),
-            chain_id: 0,
-            asset_symbol: "".to_string(),
-            asset_decimals: 0,
-            pool_address: "".to_string(),
-            circuit_type: CircuitType::Rollup1,
-            signature: "".to_string(),
-        })
-        .await;
-    assert!(result.is_ok());
-}
-
-#[actix_rt::test]
-async fn producer_send_success_v1() {
+async fn test_producer_send_success() {
     // data
     let data = TransactRequestData {
         contract_param: Default::default(),
@@ -56,21 +27,33 @@ async fn producer_send_success_v1() {
     };
 
     // mock handler
-    let transaction_handler = MockTransactions::new();
+    let mut transaction_handler = MockTransactions::new();
     transaction_handler
         .expect_create_by_request()
         .withf(move |req| req.chain_id == data.chain_id)
-        .returning(|res| {
+        .returning(|_| {
             Ok(Document::new(
                 String::from("123456"),
                 1234567890u64,
                 1234567891u64,
-                Transaction {},
+                default_transaction(),
             ))
+        });
+    transaction_handler
+        .expect_update_by_id()
+        .withf(move |id, _| id == "123456")
+        .returning(|_, _| {
+            Ok(Some(Document::new(
+                String::from("123456"),
+                1234567890u64,
+                1234567891u64,
+                default_transaction(),
+            )))
         });
 
     // create sender
-    let (sender, _) = create_default_sender_and_receiver();
+    let mock = create_default_sender_and_receiver();
+    let sender = mock.sender;
 
     let options = MockOptions::builder()
         .sender(sender)
@@ -78,19 +61,7 @@ async fn producer_send_success_v1() {
         .build();
 
     let producer = setup(options).await;
-    let result = producer
-        .send(TransactRequestData {
-            contract_param: Default::default(),
-            spend_type: SpendType::Transfer,
-            bridge_type: Default::default(),
-            chain_id: 0,
-            asset_symbol: "".to_string(),
-            asset_decimals: 0,
-            pool_address: "".to_string(),
-            circuit_type: CircuitType::Rollup1,
-            signature: "".to_string(),
-        })
-        .await;
+    let result = producer.send(default_transact_request_data(0)).await;
     assert!(result.is_ok());
 }
 
