@@ -2694,7 +2694,7 @@ dependencies = [
 [[package]]
 name = "mystiko_server_utils"
 version = "0.1.0"
-source = "git+ssh://git@github.com/mystikonetwork/mystiko-backend.git?branch=marco-dev#a27b9e812712c085f27e4d3485fb6442aed17a92"
+source = "git+ssh://git@github.com/mystikonetwork/mystiko-backend.git?rev=a61988c#a61988cd5f63d5c502d63a67d24bf8f9021bf0cb"
 dependencies = [
  "anyhow",
  "async-trait",

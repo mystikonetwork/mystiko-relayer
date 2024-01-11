@@ -1,6 +1,10 @@
 use anyhow::Result;
-use mystiko_relayer::application::run_application;
+use mystiko_relayer::application::{run_application, ApplicationOptions};
+use mystiko_relayer::configs::load_server_config;
+use mystiko_storage::SqlStatementFormatter;
+use mystiko_storage_sqlite::SqliteStorage;
 use std::path::Path;
+use std::sync::Arc;
 
 pub const DEFAULT_SERVER_CONFIG_PATH: &str = "./config.toml";
 
@@ -17,5 +21,10 @@ async fn main() -> Result<()> {
         None
     };
 
-    run_application(path).await
+    // init server config
+    let server_config = Arc::new(load_server_config(path.as_deref())?);
+    let options: ApplicationOptions<SqlStatementFormatter, SqliteStorage> =
+        ApplicationOptions::<SqlStatementFormatter, SqliteStorage>::from_server_config(server_config).await?;
+
+    run_application(options).await
 }

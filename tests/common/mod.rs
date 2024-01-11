@@ -22,9 +22,9 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 #[allow(dead_code)]
-const SERVER_CONFIG_TESTNET: &str = "tests/files/configs/config_testnet.toml";
+pub const SERVER_CONFIG_TESTNET: &str = "tests/files/configs/config_testnet.toml";
 #[allow(dead_code)]
-const SERVER_CONFIG_MAINNET: &str = "tests/files/configs/config_mainnet.toml";
+pub const SERVER_CONFIG_MAINNET: &str = "tests/files/configs/config_mainnet.toml";
 #[allow(dead_code)]
 pub const RELAYER_CONFIG_PATH: &str = "tests/files/relayer_config.json";
 #[allow(dead_code)]
@@ -54,7 +54,7 @@ pub async fn create_default_database_in_memory() -> Database<SqlStatementFormatt
 #[allow(unused)]
 pub async fn create_default_context() -> Context {
     let server_config = create_default_server_config(true).await;
-    let database = create_default_database_in_memory().await;
+    let database = Arc::new(create_default_database_in_memory().await);
     Context::new(Arc::new(server_config), database).await.unwrap()
 }
 #[allow(unused)]

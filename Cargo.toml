@@ -30,7 +30,7 @@ mystiko_protos = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git",
 mystiko_validator = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "ca2b4a9" }
 mystiko_relayer_config = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "ca2b4a9", features = ["fs"] }
 mystiko_relayer_types = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "ca2b4a9" }
-mystiko_server_utils = { git = "ssh://git@github.com/mystikonetwork/mystiko-backend.git", branch = "marco-dev" }
+mystiko_server_utils = { git = "ssh://git@github.com/mystikonetwork/mystiko-backend.git", rev = "a61988c" }
 mystiko_storage = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "ca2b4a9" }
 mystiko_storage_macros = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "ca2b4a9" }
 mystiko_storage_sqlite = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "ca2b4a9" }

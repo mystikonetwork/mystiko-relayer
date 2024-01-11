@@ -49,5 +49,6 @@ pub async fn init_sqlite_database(path: Option<String>) -> Result<Database<SqlSt
 
     let database = Database::new(SqlStatementFormatter::sqlite(), storage);
     database.migrate().await?;
+
     Ok(database)
 }

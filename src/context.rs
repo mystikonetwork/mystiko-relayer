@@ -35,10 +35,8 @@ pub struct Context {
 impl Context {
     pub async fn new(
         server_config: Arc<ServerConfig>,
-        database: Database<SqlStatementFormatter, SqliteStorage>,
+        database: Arc<Database<SqlStatementFormatter, SqliteStorage>>,
     ) -> Result<Self> {
-        let db = Arc::new(database);
-
         // create relayer and mystiko config
         let (relayer_config, mystiko_config) = create_config(server_config.clone()).await?;
 
@@ -50,13 +48,13 @@ impl Context {
         let providers = Arc::new(Box::new(providers) as Box<dyn Providers>);
 
         // create transaction handler
-        let transaction_handler = Transaction::new(db.clone());
+        let transaction_handler = Transaction::new(database.clone());
         let transaction_handler = Arc::new(Box::new(transaction_handler)
             as Box<dyn TransactionHandler<Document<DocumentTransaction>, Error = RelayerServerError>>);
 
         // create account handler
         let account_handler = Account::new(
-            db.clone(),
+            database.clone(),
             server_config
                 .accounts
                 .values()
@@ -92,7 +90,7 @@ impl Context {
     }
 }
 
-async fn create_config(server_config: Arc<ServerConfig>) -> Result<(Arc<RelayerConfig>, Arc<MystikoConfig>)> {
+pub async fn create_config(server_config: Arc<ServerConfig>) -> Result<(Arc<RelayerConfig>, Arc<MystikoConfig>)> {
     let relayer_config_path = &server_config.options.relayer_config_path;
     let mystiko_config_path = &server_config.options.mystiko_config_path;
 
