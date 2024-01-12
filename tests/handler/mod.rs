@@ -26,11 +26,3 @@ mock! {
         async fn is_repeated_transaction(&self, signature: &str) -> Result<bool, RelayerServerError>;
     }
 }
-
-mock! {
-    #[derive(Debug)]
-    pub Accounts {}
-
-    #[async_trait]
-    impl AccountHandler<Document<Account>> for Accounts {}
-}
