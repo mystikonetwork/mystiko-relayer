@@ -1,6 +1,7 @@
-use crate::channel::{create_default_sender_and_receiver, MockProvider, MockProviders};
+use crate::channel::{create_default_sender_and_receiver, MockProvider};
 use crate::common::{
-    default_transact_request_data, default_transaction, default_transaction_receipt, MockTokenPrice, MockTxManager,
+    default_transact_request_data, default_transaction, default_transaction_receipt, MockProviders, MockTokenPrice,
+    MockTxManager,
 };
 use crate::handler::MockTransactions;
 use ethers_core::types::{TxHash, U256};
