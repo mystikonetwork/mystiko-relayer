@@ -1,6 +1,6 @@
 pub mod handler;
 mod request;
-mod response;
+pub mod response;
 
 use crate::service::v1::request::{TransactRequestV1, TransactionTypeV1};
 use anyhow::Result;

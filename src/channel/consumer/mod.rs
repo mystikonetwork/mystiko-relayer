@@ -6,3 +6,10 @@ pub mod handler;
 pub trait ConsumerHandler: Send + Sync {
     async fn consume(&mut self);
 }
+
+#[async_trait]
+impl ConsumerHandler for Box<dyn ConsumerHandler> {
+    async fn consume(&mut self) {
+        (**self).consume().await;
+    }
+}

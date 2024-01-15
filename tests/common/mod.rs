@@ -2,8 +2,10 @@ use anyhow::Result;
 use async_trait::async_trait;
 use ethers_core::types::{Bytes, U256};
 use ethers_core::types::{TransactionReceipt, TxHash};
+use ethers_providers::ProviderError;
 use mockall::mock;
 use mystiko_abi::commitment_pool::TransactRequest;
+use mystiko_ethers::JsonRpcParams;
 use mystiko_ethers::{JsonRpcClientWrapper, Provider, ProviderWrapper};
 use mystiko_protos::core::v1::SpendType;
 use mystiko_relayer::configs::load_server_config;
@@ -209,6 +211,20 @@ mock! {
             tx_hash: &TxHash,
             provider: &Provider,
         ) -> Result<TransactionReceipt, TransactionMiddlewareError>;
+    }
+}
+
+mock! {
+    #[derive(Debug)]
+    pub Provider {}
+
+    #[async_trait]
+    impl JsonRpcClientWrapper for Provider {
+         async fn request(
+            &self,
+            method: &str,
+            params: JsonRpcParams,
+        ) -> Result<serde_json::Value, ProviderError>;
     }
 }
 

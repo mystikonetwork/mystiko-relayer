@@ -1,10 +1,10 @@
 pub mod v1;
 pub mod v2;
 
-use crate::channel::producer::handler::TransactionProducer;
+use crate::channel::producer::ProducerHandler;
 use crate::channel::SenderInfo;
 use crate::context::Context;
-use crate::error::ResponseError;
+use crate::error::{RelayerServerError, ResponseError};
 use actix_web::web::Data;
 use actix_web::{get, Responder};
 use anyhow::bail;
@@ -45,7 +45,7 @@ pub fn find_sender(
     chain_id: u64,
     asset_symbol: &str,
     asset_type: AssetType,
-) -> Option<Arc<TransactionProducer>> {
+) -> Option<Arc<Box<dyn ProducerHandler<Error = RelayerServerError>>>> {
     let matches = senders
         .iter()
         .filter(|sender| {

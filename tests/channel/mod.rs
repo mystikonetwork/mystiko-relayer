@@ -1,27 +1,15 @@
 use async_trait::async_trait;
-use ethers_providers::ProviderError;
 use mockall::mock;
-use mystiko_ethers::{JsonRpcClientWrapper, JsonRpcParams, Provider};
+use mystiko_relayer::channel::consumer::ConsumerHandler;
+use mystiko_relayer::channel::producer::ProducerHandler;
+use mystiko_relayer::database::transaction::Transaction;
+use mystiko_relayer::error::RelayerServerError;
 use mystiko_relayer_types::TransactRequestData;
-use std::sync::Arc;
+use mystiko_storage::Document;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
 mod consumer_tests;
 mod producer_tests;
-
-mock! {
-    #[derive(Debug)]
-    pub Provider {}
-
-    #[async_trait]
-    impl JsonRpcClientWrapper for Provider {
-         async fn request(
-            &self,
-            method: &str,
-            params: JsonRpcParams,
-        ) -> Result<serde_json::Value, ProviderError>;
-    }
-}
 
 struct MockSenderAndReceiver {
     sender: Sender<(String, TransactRequestData)>,
@@ -32,4 +20,23 @@ struct MockSenderAndReceiver {
 fn create_default_sender_and_receiver() -> MockSenderAndReceiver {
     let (sender, receiver) = channel::<(String, TransactRequestData)>(10);
     MockSenderAndReceiver { sender, receiver }
+}
+
+mock! {
+    pub Producers {}
+
+    #[async_trait]
+    impl ProducerHandler for Producers {
+        type Error = RelayerServerError;
+        async fn send(&self, data: TransactRequestData) -> Result<Document<Transaction>, RelayerServerError>;
+    }
+}
+
+mock! {
+    pub Consumers {}
+
+    #[async_trait]
+    impl ConsumerHandler for Consumers {
+        async fn consume(&mut self);
+    }
 }

@@ -1,3 +1,4 @@
+use crate::channel::consumer::handler::TransactionConsumer;
 use crate::channel::consumer::ConsumerHandler;
 use crate::channel::Channel;
 use crate::configs::server::ServerConfig;
@@ -36,7 +37,7 @@ where
         // create context
         let context = Arc::new(Context::new(server_config.clone(), database.clone()).await?);
         // create channel
-        let channel = Channel::new(context.clone()).await?;
+        let channel = Channel::<TransactionConsumer>::new(context.clone()).await?;
         Ok(ApplicationOptions {
             database,
             context,
