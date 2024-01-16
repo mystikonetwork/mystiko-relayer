@@ -37,10 +37,12 @@ mod v2;
 const CHAIN_ID: u64 = 99;
 
 struct MockOptions {
+    chain_id: u64,
     providers: HashMap<u64, MockProvider>,
     transaction_handler: MockTransactions,
     account_handler: MockAccounts,
     token_price: MockTokenPrice,
+    producer: MockProducers,
     consumer: MockConsumers,
 }
 
@@ -89,10 +91,10 @@ async fn create_app(
 
     let mut senders = HashSet::new();
     senders.insert(SenderInfo {
-        chain_id: CHAIN_ID,
+        chain_id: options.chain_id,
         private_key: "0x000000".to_string(),
         supported_erc20_tokens: vec!["MTT".to_string(), "ETH".to_string()],
-        producer: Arc::new(Box::new(MockProducers::new()) as Box<dyn ProducerHandler<Error = RelayerServerError>>),
+        producer: Arc::new(Box::new(options.producer) as Box<dyn ProducerHandler<Error = RelayerServerError>>),
     });
 
     let consumers = vec![Box::new(options.consumer) as Box<dyn ConsumerHandler>];
@@ -129,11 +131,13 @@ async fn create_app(
 #[actix_rt::test]
 async fn test_handshake() {
     let options = MockOptions {
+        chain_id: CHAIN_ID,
         providers: HashMap::new(),
         transaction_handler: MockTransactions::new(),
         account_handler: MockAccounts::new(),
         token_price: MockTokenPrice::new(),
         consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
     };
     let app = create_app(options).await.unwrap();
     let request = TestRequest::get().uri("/handshake").to_request();

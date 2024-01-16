@@ -1,7 +1,7 @@
-use crate::channel::MockConsumers;
+use crate::channel::{MockConsumers, MockProducers};
 use crate::common::{default_transaction, MockTokenPrice};
 use crate::handler::{MockAccounts, MockTransactions};
-use crate::service::{create_app, MockOptions};
+use crate::service::{create_app, MockOptions, CHAIN_ID};
 use actix_web::test::{call_and_read_body_json, TestRequest};
 use mystiko_relayer::error::RelayerServerError;
 use mystiko_relayer::service::v1::response::JobStatusResponse;
@@ -25,11 +25,13 @@ async fn test_success() {
             )))
         });
     let options = MockOptions {
+        chain_id: CHAIN_ID,
         providers: HashMap::new(),
         transaction_handler,
         account_handler: MockAccounts::new(),
         token_price: MockTokenPrice::new(),
         consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
     };
     let app = create_app(options).await.unwrap();
 
@@ -48,11 +50,13 @@ async fn test_with_id_not_found() {
         .withf(|id| id != "1")
         .returning(|_| Ok(None));
     let options = MockOptions {
+        chain_id: CHAIN_ID,
         providers: HashMap::new(),
         transaction_handler,
         account_handler: MockAccounts::new(),
         token_price: MockTokenPrice::new(),
         consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
     };
     let app = create_app(options).await.unwrap();
     let request = TestRequest::get().uri("/jobs/2").to_request();
@@ -70,11 +74,13 @@ async fn test_with_error() {
         )))
     });
     let options = MockOptions {
+        chain_id: CHAIN_ID,
         providers: HashMap::new(),
         transaction_handler,
         account_handler: MockAccounts::new(),
         token_price: MockTokenPrice::new(),
         consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
     };
     let app = create_app(options).await.unwrap();
     let request = TestRequest::get().uri("/jobs/2").to_request();

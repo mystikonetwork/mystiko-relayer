@@ -1,4 +1,4 @@
-use crate::channel::MockConsumers;
+use crate::channel::{MockConsumers, MockProducers};
 use crate::common::MockTokenPrice;
 use crate::handler::{MockAccounts, MockTransactions};
 use crate::service::{create_app, MockOptions, MockProvider};
@@ -46,11 +46,13 @@ async fn test_success() {
     let mut providers = HashMap::new();
     providers.insert(CHAIN_ID, provider);
     let options = MockOptions {
+        chain_id: CHAIN_ID,
         providers,
         transaction_handler: MockTransactions::new(),
         account_handler,
         token_price,
         consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
     };
     let app = create_app(options).await.unwrap();
 
@@ -107,11 +109,13 @@ async fn test_success_with_options_erc20() {
     let mut providers = HashMap::new();
     providers.insert(CHAIN_ID, provider);
     let options = MockOptions {
+        chain_id: CHAIN_ID,
         providers,
         transaction_handler: MockTransactions::new(),
         account_handler,
         token_price,
         consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
     };
     let app = create_app(options).await.unwrap();
 
@@ -177,11 +181,13 @@ async fn test_success_with_options_main() {
     let mut providers = HashMap::new();
     providers.insert(CHAIN_ID, provider);
     let options = MockOptions {
+        chain_id: CHAIN_ID,
         providers,
         transaction_handler: MockTransactions::new(),
         account_handler,
         token_price,
         consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
     };
     let app = create_app(options).await.unwrap();
 
