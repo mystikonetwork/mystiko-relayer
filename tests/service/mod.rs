@@ -8,9 +8,11 @@ use actix_web::test::{call_and_read_body_json, init_service, TestRequest};
 use actix_web::web::{scope, Data};
 use actix_web::{App, Error};
 use anyhow::Result;
-use ethers_providers::MockProvider;
+use async_trait::async_trait;
+use ethers_core::types::{Block, FeeHistory, TxHash, U256};
+use ethers_providers::ProviderError;
 use log::LevelFilter;
-use mystiko_ethers::{Provider, ProviderWrapper};
+use mystiko_ethers::{JsonRpcClientWrapper, JsonRpcParams, Provider, ProviderWrapper};
 use mystiko_relayer::channel::consumer::ConsumerHandler;
 use mystiko_relayer::channel::producer::ProducerHandler;
 use mystiko_relayer::channel::SenderInfo;
@@ -22,10 +24,12 @@ use mystiko_relayer::service::v1::handler::{chain_status, job_status, transact_v
 use mystiko_relayer::service::v2::handler::{info, transact, transaction_status};
 use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
 use mystiko_relayer_types::HandshakeResponse;
+use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use typed_builder::TypedBuilder;
 
 mod v1;
 mod v2;
@@ -137,4 +141,43 @@ async fn test_handshake() {
     assert_eq!(response.code, ResponseCode::Successful as i32);
     assert!(response.data.is_some());
     assert_eq!(response.data.unwrap().api_version, vec!["v2".to_string()]);
+}
+
+#[derive(Debug, TypedBuilder)]
+struct MockProvider {
+    #[builder(default)]
+    base_fee_per_gas: U256,
+    #[builder(default)]
+    max_fee_per_gas: U256,
+    #[builder(default)]
+    priority_fee: U256,
+    #[builder(default)]
+    gas_price: U256,
+}
+
+#[async_trait]
+impl JsonRpcClientWrapper for MockProvider {
+    async fn request(&self, method: &str, _params: JsonRpcParams) -> std::result::Result<Value, ProviderError> {
+        if method == "eth_getBlockByNumber" {
+            let block = Block::<TxHash> {
+                base_fee_per_gas: Some(self.base_fee_per_gas),
+                ..Default::default()
+            };
+            Ok(serde_json::json!(block))
+        } else if method == "eth_estimateEip1559Fees" {
+            Ok(serde_json::json!((self.max_fee_per_gas, self.priority_fee)))
+        } else if method == "eth_feeHistory" {
+            let history = FeeHistory {
+                base_fee_per_gas: vec![],
+                gas_used_ratio: vec![],
+                oldest_block: Default::default(),
+                reward: vec![],
+            };
+            Ok(serde_json::json!(history))
+        } else if method == "eth_gasPrice" {
+            Ok(serde_json::json!(self.gas_price))
+        } else {
+            panic!("Unexpected method: {}", method);
+        }
+    }
 }

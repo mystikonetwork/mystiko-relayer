@@ -1,5 +1,5 @@
 pub mod handler;
-mod request;
+pub mod request;
 pub mod response;
 
 use crate::service::v1::request::{TransactRequestV1, TransactionTypeV1};
