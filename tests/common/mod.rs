@@ -1,5 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
+use ethers_core::abi::AbiEncode;
 use ethers_core::types::{Bytes, U256};
 use ethers_core::types::{TransactionReceipt, TxHash};
 use ethers_providers::ProviderError;
@@ -59,6 +60,7 @@ pub async fn create_default_context() -> Context {
     let database = Arc::new(create_default_database_in_memory().await);
     Context::new(Arc::new(server_config), database).await.unwrap()
 }
+
 #[allow(unused)]
 pub fn default_transaction() -> Transaction {
     Transaction {
@@ -85,7 +87,7 @@ pub fn default_transaction() -> Transaction {
         out_encrypted_notes: None,
         random_auditing_public_key: Default::default(),
         error_message: None,
-        transaction_hash: None,
+        transaction_hash: Some(TxHash::random().encode_hex()),
     }
 }
 

@@ -8,7 +8,7 @@ use mystiko_relayer::service::v1::request::{
     G1PointStruct, G2PointStruct, ProofStruct, TransactRequestV1, TransactionTypeV1,
 };
 use mystiko_relayer::service::v1::response::TransactResponse;
-use mystiko_relayer_types::response::ApiResponse;
+use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
 use mystiko_relayer_types::TransactStatus;
 use mystiko_storage::Document;
 use mystiko_types::{BridgeType, CircuitType};
@@ -57,13 +57,13 @@ async fn test_success() {
         account_handler: MockAccounts::new(),
         token_price: MockTokenPrice::new(),
         consumer: MockConsumers::new(),
-        producer: MockProducers::new(),
+        producer,
     };
     let app = create_app(options).await.unwrap();
 
     let request = TestRequest::post().uri("/transact").set_json(data).to_request();
     let response: ApiResponse<TransactResponse> = call_and_read_body_json(&app, request).await;
-    println!("{:?}", response);
+    assert_eq!(response.code, ResponseCode::Successful as i32);
 }
 
 fn transact_request_v1() -> TransactRequestV1 {
@@ -120,9 +120,9 @@ fn transact_request_v1() -> TransactRequestV1 {
         0684a4da6afd3c10bae9bd252dd20a9388d86c617bacb807a236a0285603e4086d61b"
             .to_string(),
         transaction_type: TransactionTypeV1::Withdraw,
-        chain_id: 97,
+        chain_id: 5,
         pool_address: "0x4F416Acfd1153F9Af782056e68607227Af29D931".to_string(),
-        asset_symbol: "BNB".to_string(),
+        asset_symbol: "MTT".to_string(),
         bridge_type: BridgeType::Loop,
         circuit_type: CircuitType::Transaction1x0,
         relayer_fee_amount: U256::from_str_radix(
