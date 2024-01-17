@@ -2,6 +2,7 @@ use crate::common::{
     create_default_server_config, RELAYER_CONFIG_PATH, SERVER_CONFIG_INVALID_ID, SERVER_CONFIG_INVALID_SYMBOL,
     SERVER_CONFIG_INVALID_VERSION,
 };
+use mystiko_relayer::configs::account::AccountConfig;
 use mystiko_relayer::configs::load_server_config;
 use mystiko_relayer::configs::server::Settings;
 use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
@@ -77,4 +78,16 @@ fn test_settings_default_param() {
     assert_eq!(settings.log_level, "info");
     assert_eq!(settings.host, "0.0.0.0");
     assert_eq!(settings.port, 8090);
+}
+
+#[test]
+fn test_account_config_default_param() {
+    let account = AccountConfig::builder().build();
+    assert!(account.available);
+}
+
+#[test]
+fn load_server_config_from_env() {
+    let result = load_server_config(None);
+    assert!(result.is_ok());
 }

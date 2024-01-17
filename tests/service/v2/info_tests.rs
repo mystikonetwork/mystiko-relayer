@@ -5,9 +5,10 @@ use crate::service::{create_app, MockOptions, MockProvider};
 use actix_web::test::{call_and_read_body_json, TestRequest};
 use ethereum_types::U256;
 use mystiko_relayer::database::account::Account;
+use mystiko_relayer::error::RelayerServerError;
 use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
 use mystiko_relayer_types::{RegisterInfoRequest, RegisterInfoResponse, RegisterOptions};
-use mystiko_storage::Document;
+use mystiko_storage::{Document, StorageError};
 use mystiko_types::CircuitType;
 use std::collections::HashMap;
 
@@ -312,3 +313,70 @@ async fn test_with_gas_price_error() {
     assert!(response.data.is_none());
     assert!(response.message.is_some());
 }
+
+#[actix_rt::test]
+async fn test_with_database_error() {
+    let mut account_handler = MockAccounts::new();
+    account_handler
+        .expect_find_by_chain_id()
+        .withf(|chain_id| chain_id == &CHAIN_ID)
+        .returning(|_| {
+            Err(RelayerServerError::StorageError(StorageError::NoSuchColumnError(
+                "mock test".to_string(),
+            )))
+        });
+
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler: MockTransactions::new(),
+        account_handler,
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
+    };
+    let app = create_app(options).await.unwrap();
+
+    let request = TestRequest::post()
+        .uri("/api/v2/info")
+        .set_json(RegisterInfoRequest::builder().chain_id(CHAIN_ID).build())
+        .to_request();
+    let response: ApiResponse<RegisterInfoResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::DatabaseError as i32);
+}
+
+#[actix_rt::test]
+async fn test_with_account_empty() {
+    let mut account_handler = MockAccounts::new();
+    account_handler
+        .expect_find_by_chain_id()
+        .withf(|chain_id| chain_id == &CHAIN_ID)
+        .returning(|_| Ok(vec![]));
+
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler: MockTransactions::new(),
+        account_handler,
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
+    };
+    let app = create_app(options).await.unwrap();
+
+    let request = TestRequest::post()
+        .uri("/api/v2/info")
+        .set_json(RegisterInfoRequest::builder().chain_id(CHAIN_ID).build())
+        .to_request();
+    let response: ApiResponse<RegisterInfoResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::AccountNotFoundInDatabase as i32);
+}
+
+#[actix_rt::test]
+async fn test_with_not_supported_asset_symbol() {}
+
+#[actix_rt::test]
+async fn test_with_not_available() {}
+
+#[actix_rt::test]
+async fn test_with_minimum_gas_fee_error() {}
