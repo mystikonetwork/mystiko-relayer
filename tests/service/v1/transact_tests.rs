@@ -3,14 +3,16 @@ use crate::common::{default_transaction, MockTokenPrice};
 use crate::handler::{MockAccounts, MockTransactions};
 use crate::service::{create_app, MockOptions};
 use actix_web::test::{call_and_read_body_json, TestRequest};
+use anyhow::anyhow;
 use ethers_core::types::U256;
+use mystiko_relayer::error::RelayerServerError;
 use mystiko_relayer::service::v1::request::{
     G1PointStruct, G2PointStruct, ProofStruct, TransactRequestV1, TransactionTypeV1,
 };
 use mystiko_relayer::service::v1::response::TransactResponse;
 use mystiko_relayer_types::response::{ApiResponse, ResponseCode};
 use mystiko_relayer_types::TransactStatus;
-use mystiko_storage::Document;
+use mystiko_storage::{Document, StorageError};
 use mystiko_types::{BridgeType, CircuitType};
 use std::collections::HashMap;
 
@@ -64,6 +66,274 @@ async fn test_success() {
     let request = TestRequest::post().uri("/transact").set_json(data).to_request();
     let response: ApiResponse<TransactResponse> = call_and_read_body_json(&app, request).await;
     assert_eq!(response.code, ResponseCode::Successful as i32);
+}
+
+#[actix_rt::test]
+async fn test_main_success() {
+    let mut data = transact_request_v1();
+    data.asset_symbol = "ETH".to_string();
+    let signature = data.signature.clone();
+    let mut transaction_handler = MockTransactions::new();
+    transaction_handler
+        .expect_is_repeated_transaction()
+        .withf(move |sig| sig.eq(&signature))
+        .returning(|_| Ok(false));
+    transaction_handler
+        .expect_find_by_id()
+        .withf(|id| id == "123456")
+        .returning(|_| {
+            let mut transaction = default_transaction();
+            transaction.status = TransactStatus::Succeeded;
+            Ok(Some(Document::new(
+                "123456".to_string(),
+                1234567890u64,
+                1234567891u64,
+                transaction,
+            )))
+        });
+    let mut producer = MockProducers::new();
+    producer
+        .expect_send()
+        .withf(|data| data.chain_id == CHAIN_ID)
+        .returning(|_| {
+            Ok(Document::new(
+                "123456".to_string(),
+                1234567890u64,
+                1234567891u64,
+                default_transaction(),
+            ))
+        });
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler,
+        account_handler: MockAccounts::new(),
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer,
+    };
+    let app = create_app(options).await.unwrap();
+
+    let request = TestRequest::post().uri("/transact").set_json(data).to_request();
+    let response: ApiResponse<TransactResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::Successful as i32);
+}
+
+#[actix_rt::test]
+async fn test_with_invalid_request_data() {
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler: MockTransactions::new(),
+        account_handler: MockAccounts::new(),
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
+    };
+    let app = create_app(options).await.unwrap();
+    let mut data = transact_request_v1();
+    data.chain_id = 0u64;
+
+    let request = TestRequest::post().uri("/transact").set_json(data).to_request();
+    let response: ApiResponse<TransactResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::ValidateError as i32);
+    assert!(response.message.is_some());
+    assert!(response.data.is_none());
+}
+
+#[actix_rt::test]
+async fn test_with_repeated_transaction() {
+    let data = transact_request_v1();
+    let signature = data.signature.clone();
+    let mut transaction_handler = MockTransactions::new();
+    transaction_handler
+        .expect_is_repeated_transaction()
+        .withf(move |sig| sig.eq(&signature))
+        .returning(|_| Ok(true));
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler,
+        account_handler: MockAccounts::new(),
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
+    };
+    let app = create_app(options).await.unwrap();
+
+    let request = TestRequest::post().uri("/transact").set_json(data).to_request();
+    let response: ApiResponse<TransactResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::RepeatedTransaction as i32);
+    assert!(response.data.is_none());
+    assert!(response.message.is_some());
+}
+
+#[actix_rt::test]
+async fn test_with_database_error() {
+    let data = transact_request_v1();
+    let signature = data.signature.clone();
+    let mut transaction_handler = MockTransactions::new();
+    transaction_handler
+        .expect_is_repeated_transaction()
+        .withf(move |sig| sig.eq(&signature))
+        .returning(|_| {
+            Err(RelayerServerError::StorageError(StorageError::DatabaseError(anyhow!(
+                "database error"
+            ))))
+        });
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler,
+        account_handler: MockAccounts::new(),
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
+    };
+    let app = create_app(options).await.unwrap();
+
+    let request = TestRequest::post().uri("/transact").set_json(data).to_request();
+    let response: ApiResponse<TransactResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::DatabaseError as i32);
+    assert!(response.data.is_none());
+    assert!(response.message.is_some());
+}
+
+#[actix_rt::test]
+async fn test_with_chain_config_not_found() {
+    let mut data = transact_request_v1();
+    data.chain_id = 1u64;
+    let signature = data.signature.clone();
+    let mut transaction_handler = MockTransactions::new();
+    transaction_handler
+        .expect_is_repeated_transaction()
+        .withf(move |sig| sig.eq(&signature))
+        .returning(|_| Ok(false));
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler,
+        account_handler: MockAccounts::new(),
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
+    };
+    let app = create_app(options).await.unwrap();
+
+    let request = TestRequest::post().uri("/transact").set_json(data).to_request();
+    let response: ApiResponse<TransactResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::ChainIdNotFound as i32);
+    assert!(response.data.is_none());
+    assert!(response.message.is_some());
+}
+
+#[actix_rt::test]
+async fn test_with_pool_contract_not_found() {
+    let mut data = transact_request_v1();
+    data.pool_address = "0x4F416Acfd1153F9Af782056e68607227Af29D932".to_string();
+    let signature = data.signature.clone();
+    let mut transaction_handler = MockTransactions::new();
+    transaction_handler
+        .expect_is_repeated_transaction()
+        .withf(move |sig| sig.eq(&signature))
+        .returning(|_| Ok(false));
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler,
+        account_handler: MockAccounts::new(),
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
+    };
+    let app = create_app(options).await.unwrap();
+
+    let request = TestRequest::post().uri("/transact").set_json(data).to_request();
+    let response: ApiResponse<TransactResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::Failed as i32);
+    assert!(response.data.is_none());
+    assert!(response.message.is_some());
+}
+
+#[actix_rt::test]
+async fn test_with_find_sender_error() {
+    let mut data = transact_request_v1();
+    data.asset_symbol = "mUSD".to_string();
+    let signature = data.signature.clone();
+    let mut transaction_handler = MockTransactions::new();
+    transaction_handler
+        .expect_is_repeated_transaction()
+        .withf(move |sig| sig.eq(&signature))
+        .returning(|_| Ok(false));
+    let producer = MockProducers::new();
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler,
+        account_handler: MockAccounts::new(),
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer,
+    };
+    let app = create_app(options).await.unwrap();
+
+    let request = TestRequest::post().uri("/transact").set_json(data).to_request();
+    let response: ApiResponse<TransactResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::UnsupportedTransaction as i32);
+    assert!(response.data.is_none());
+    assert!(response.message.is_some());
+}
+
+#[actix_rt::test]
+async fn test_with_transaction_status_error() {
+    let data = transact_request_v1();
+    let signature = data.signature.clone();
+    let mut transaction_handler = MockTransactions::new();
+    transaction_handler
+        .expect_is_repeated_transaction()
+        .withf(move |sig| sig.eq(&signature))
+        .returning(|_| Ok(false));
+    transaction_handler
+        .expect_find_by_id()
+        .withf(|id| id == "123456")
+        .returning(|_| {
+            let mut transaction = default_transaction();
+            transaction.status = TransactStatus::Failed;
+            Ok(Some(Document::new(
+                "123456".to_string(),
+                1234567890u64,
+                1234567891u64,
+                transaction,
+            )))
+        });
+    let mut producer = MockProducers::new();
+    producer
+        .expect_send()
+        .withf(|data| data.chain_id == CHAIN_ID)
+        .returning(|_| {
+            Ok(Document::new(
+                "123456".to_string(),
+                1234567890u64,
+                1234567891u64,
+                default_transaction(),
+            ))
+        });
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler,
+        account_handler: MockAccounts::new(),
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer,
+    };
+    let app = create_app(options).await.unwrap();
+
+    let request = TestRequest::post().uri("/transact").set_json(data).to_request();
+    let response: ApiResponse<TransactResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::Failed as i32);
+    assert!(response.data.is_none());
+    assert!(response.message.is_some());
 }
 
 fn transact_request_v1() -> TransactRequestV1 {

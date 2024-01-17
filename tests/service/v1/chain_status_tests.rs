@@ -213,3 +213,88 @@ async fn test_success_with_options_main() {
     let contracts = data.contracts.unwrap();
     assert_eq!(contracts.len(), 1);
 }
+
+#[actix_rt::test]
+async fn test_with_chain_config_not_found() {
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler: MockTransactions::new(),
+        account_handler: MockAccounts::new(),
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
+    };
+    let app = create_app(options).await.unwrap();
+
+    let request = TestRequest::post()
+        .uri("/status")
+        .set_json(ChainStatusRequest {
+            chain_id: 1,
+            options: Some(ChainStatusOptions {
+                asset_symbol: "ETH".to_string(),
+                asset_decimals: 16,
+                circuit_type: CircuitType::Transaction1x0,
+            }),
+        })
+        .to_request();
+    let response: ApiResponse<ChainStatusResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::Successful as i32);
+    assert!(response.data.is_some());
+    let data = &response.data.unwrap();
+    assert_eq!(data.chain_id, 1);
+    assert!(!data.support);
+    assert!(data.relayer_contract_address.is_none());
+    assert!(data.contracts.is_none());
+}
+
+#[actix_rt::test]
+async fn test_with_gas_price_error() {
+    let mut account_handler = MockAccounts::new();
+    account_handler
+        .expect_find_by_chain_id()
+        .withf(|chain_id| chain_id == &CHAIN_ID)
+        .returning(|chain_id| {
+            Ok(vec![Document::new(
+                "123456".to_string(),
+                1234567890u64,
+                1234567891u64,
+                Account {
+                    chain_address: "0x1234567890".to_string(),
+                    chain_id,
+                    available: true,
+                    supported_erc20_tokens: vec!["mtt".to_string()],
+                    balance_alarm_threshold: 0.0,
+                    balance_check_interval_ms: 0,
+                    insufficient_balances: false,
+                },
+            )])
+        });
+
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler: MockTransactions::new(),
+        account_handler,
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
+    };
+    let app = create_app(options).await.unwrap();
+
+    let request = TestRequest::post()
+        .uri("/status")
+        .set_json(ChainStatusRequest {
+            chain_id: CHAIN_ID,
+            options: Some(ChainStatusOptions {
+                asset_symbol: "mtt".to_string(),
+                asset_decimals: 16,
+                circuit_type: CircuitType::Transaction1x0,
+            }),
+        })
+        .to_request();
+    let response: ApiResponse<ChainStatusResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::GetGasPriceError as i32);
+    assert!(response.data.is_none());
+    assert!(response.message.is_some());
+}

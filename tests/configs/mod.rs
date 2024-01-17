@@ -3,6 +3,7 @@ use crate::common::{
     SERVER_CONFIG_INVALID_VERSION,
 };
 use mystiko_relayer::configs::load_server_config;
+use mystiko_relayer::configs::server::Settings;
 use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
 
 #[actix_rt::test]
@@ -68,4 +69,12 @@ async fn test_invalid_2() {
     let relayer_config = relayer_config.unwrap();
     let validate = server_config.validation(&relayer_config);
     assert!(validate.is_err());
+}
+
+#[test]
+fn test_settings_default_param() {
+    let settings = Settings::builder().build();
+    assert_eq!(settings.log_level, "info");
+    assert_eq!(settings.host, "0.0.0.0");
+    assert_eq!(settings.port, 8090);
 }

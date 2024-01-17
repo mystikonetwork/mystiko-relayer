@@ -220,3 +220,95 @@ async fn test_success_with_options_main() {
     assert_eq!(contracts[0].asset_symbol, "ETH");
     assert_eq!(contracts[0].relayer_fee_of_ten_thousandth, 25);
 }
+
+#[actix_rt::test]
+async fn test_with_chain_config_not_found() {
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler: MockTransactions::new(),
+        account_handler: MockAccounts::new(),
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
+    };
+    let app = create_app(options).await.unwrap();
+
+    let request = TestRequest::post()
+        .uri("/api/v2/info")
+        .set_json(
+            RegisterInfoRequest::builder()
+                .chain_id(1u64)
+                .options(
+                    RegisterOptions::builder()
+                        .asset_symbol("eth")
+                        .circuit_type(CircuitType::Transaction1x0)
+                        .show_unavailable(false)
+                        .build(),
+                )
+                .build(),
+        )
+        .to_request();
+    let response: ApiResponse<RegisterInfoResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::Successful as i32);
+    let data = &response.data.unwrap();
+    assert_eq!(data.chain_id, 1);
+    assert!(!data.support);
+    assert!(data.available.is_some());
+    assert!(!&data.available.unwrap());
+}
+
+#[actix_rt::test]
+async fn test_with_gas_price_error() {
+    let mut account_handler = MockAccounts::new();
+    account_handler
+        .expect_find_by_chain_id()
+        .withf(|chain_id| chain_id == &CHAIN_ID)
+        .returning(|chain_id| {
+            Ok(vec![Document::new(
+                "123456".to_string(),
+                1234567890u64,
+                1234567891u64,
+                Account {
+                    chain_address: "0x1234567890".to_string(),
+                    chain_id,
+                    available: true,
+                    supported_erc20_tokens: vec!["mtt".to_string()],
+                    balance_alarm_threshold: 0.0,
+                    balance_check_interval_ms: 0,
+                    insufficient_balances: false,
+                },
+            )])
+        });
+
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler: MockTransactions::new(),
+        account_handler,
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer: MockProducers::new(),
+    };
+    let app = create_app(options).await.unwrap();
+
+    let request = TestRequest::post()
+        .uri("/api/v2/info")
+        .set_json(
+            RegisterInfoRequest::builder()
+                .chain_id(CHAIN_ID)
+                .options(
+                    RegisterOptions::builder()
+                        .asset_symbol("mtt")
+                        .circuit_type(CircuitType::Transaction1x0)
+                        .show_unavailable(false)
+                        .build(),
+                )
+                .build(),
+        )
+        .to_request();
+    let response: ApiResponse<RegisterInfoResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::GetGasPriceError as i32);
+    assert!(response.data.is_none());
+    assert!(response.message.is_some());
+}
