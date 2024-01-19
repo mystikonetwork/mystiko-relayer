@@ -17,6 +17,7 @@ use mystiko_types::{AssetType, TransactionType};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::time::timeout;
 use validator::Validate;
 
 #[post("status")]
@@ -268,36 +269,48 @@ pub async fn transact_v1(
                     hash: "".to_string(),
                     chain_id: transaction.data.chain_id,
                 };
-                loop {
-                    // wait transaction hash
-                    let transaction = handler.find_by_id(transaction.id.as_str()).await.map_err(|error| {
-                        error!("find transaction by id({}) got error: {:?}", transaction.id, error);
-                        ResponseError::TransactionNotFound {
-                            id: transaction.id.to_string(),
-                        }
-                    })?;
-                    match transaction {
-                        None => {
-                            info!("transaction not found, continue wait");
-                        }
-                        Some(doc) => {
-                            if doc.data.status == TransactStatus::Failed {
-                                return Err(ResponseError::TransactionFailed {
-                                    error: doc.data.error_message.unwrap_or("unknown".to_string()),
-                                });
+                let timeout_duration = Duration::from_secs(120);
+                let result = timeout(timeout_duration, async {
+                    loop {
+                        // wait transaction hash
+                        let transaction = handler.find_by_id(transaction.id.as_str()).await.map_err(|error| {
+                            error!("find transaction by id({}) got error: {:?}", transaction.id, error);
+                            ResponseError::TransactionNotFound {
+                                id: transaction.id.to_string(),
                             }
-                            match doc.data.transaction_hash {
-                                None => {
-                                    info!("transaction hash not found, continue wait");
+                        })?;
+                        match transaction {
+                            None => {
+                                info!("transaction not found, continue wait");
+                            }
+                            Some(doc) => {
+                                if doc.data.status == TransactStatus::Failed {
+                                    return Err(ResponseError::TransactionFailed {
+                                        error: doc.data.error_message.unwrap_or("unknown".to_string()),
+                                    });
                                 }
-                                Some(hash) => {
-                                    response.hash = hash;
-                                    break;
+                                match doc.data.transaction_hash {
+                                    None => {
+                                        info!("transaction hash not found, continue wait");
+                                    }
+                                    Some(hash) => {
+                                        response.hash = hash;
+                                        return Ok(());
+                                    }
                                 }
                             }
                         }
+                        tokio::time::sleep(Duration::from_secs(2)).await;
                     }
-                    tokio::time::sleep(Duration::from_secs(2)).await;
+                })
+                .await;
+
+                match result {
+                    Ok(result) => match result {
+                        Ok(_) => {}
+                        Err(err) => return Err(err),
+                    },
+                    Err(_) => return Err(ResponseError::Unknown),
                 }
 
                 Ok(success(response))

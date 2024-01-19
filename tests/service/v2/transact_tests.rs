@@ -256,6 +256,49 @@ async fn test_with_find_sender_error() {
     assert!(response.message.is_some());
 }
 
+#[actix_rt::test]
+async fn test_with_send_error() {
+    let data = transact_request_data();
+    let signature = data.signature.clone();
+    let mut transaction_handler = MockTransactions::new();
+    transaction_handler
+        .expect_is_repeated_transaction()
+        .withf(move |sig| sig.eq(&signature))
+        .returning(|_| Ok(false));
+    transaction_handler
+        .expect_find_by_id()
+        .withf(|id| id == "123456")
+        .returning(|_| {
+            let mut transaction = default_transaction();
+            transaction.status = TransactStatus::Succeeded;
+            Ok(Some(Document::new(
+                "123456".to_string(),
+                1234567890u64,
+                1234567891u64,
+                transaction,
+            )))
+        });
+    let mut producer = MockProducers::new();
+    producer
+        .expect_send()
+        .withf(|data| data.chain_id == CHAIN_ID)
+        .returning(|_| Err(RelayerServerError::QueueSendError("mock error".to_string())));
+    let options = MockOptions {
+        chain_id: CHAIN_ID,
+        providers: HashMap::new(),
+        transaction_handler,
+        account_handler: MockAccounts::new(),
+        token_price: MockTokenPrice::new(),
+        consumer: MockConsumers::new(),
+        producer,
+    };
+    let app = create_app(options).await.unwrap();
+
+    let request = TestRequest::post().uri("/api/v2/transact").set_json(data).to_request();
+    let response: ApiResponse<RelayTransactResponse> = call_and_read_body_json(&app, request).await;
+    assert_eq!(response.code, ResponseCode::TransactionChannelError as i32);
+}
+
 fn transact_request_data() -> TransactRequestData {
     TransactRequestData {
         contract_param: TransactRequest {
