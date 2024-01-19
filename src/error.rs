@@ -10,6 +10,8 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum RelayerServerError {
     #[error(transparent)]
+    AnyhowError(#[from] anyhow::Error),
+    #[error(transparent)]
     StorageError(#[from] StorageError),
     #[error(transparent)]
     Secp256k1Error(#[from] secp256k1::Error),

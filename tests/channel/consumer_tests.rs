@@ -1,334 +1,370 @@
-use crate::common::{get_valid_transact_request_data, TestServer, TOKEN_PRICE_CONFIG_PATH};
-use ethereum_types::{U256, U64};
-use ethers_core::types::{Transaction, TransactionReceipt, TxHash};
-use ethers_providers::MockProvider;
-use log::error;
-use mockito::Matcher;
-use mystiko_fs::read_file_bytes;
-use mystiko_relayer::channel::transact_channel;
-use mystiko_relayer::database::Database;
-use mystiko_relayer::handler::transaction::TransactionHandler;
-use mystiko_relayer_types::TransactStatus;
-use mystiko_server_utils::token_price::CurrencyQuoteResponse;
-use mystiko_storage::SqlStatementFormatter;
-use mystiko_storage_sqlite::SqliteStorage;
-use mystiko_types::AssetType;
-use serial_test::file_serial;
+use crate::channel::create_default_sender_and_receiver;
+use crate::common::{
+    default_transact_request_data, default_transaction, default_transaction_receipt, MockProvider, MockProviders,
+    MockTokenPrice, MockTxManager,
+};
+use crate::handler::MockTransactions;
+use ethers_core::types::{TxHash, U256};
+use log::LevelFilter;
+use mystiko_ethers::{Provider, ProviderWrapper};
+use mystiko_relayer::channel::consumer::handler::TransactionConsumer;
+use mystiko_relayer::channel::consumer::ConsumerHandler;
+use mystiko_relayer::error::RelayerServerError;
+use mystiko_relayer_types::TransactRequestData;
+use mystiko_server_utils::tx_manager::TransactionMiddlewareError;
+use mystiko_storage::{Document, StorageError};
+use std::collections::HashMap;
 use std::sync::Arc;
-use std::thread::sleep;
-use std::time::Duration;
 use tokio::runtime::Runtime;
+use tokio::sync::mpsc::Receiver;
+use tokio::sync::RwLock;
+use typed_builder::TypedBuilder;
 
 #[test]
-fn test_consumer_execution_successful() {
-    // tokio runtime
+fn test_consumer_execution_success() {
     let rt = Runtime::new().unwrap();
-
+    let _ = env_logger::builder()
+        .filter_module("mystiko_relayer", LevelFilter::Debug)
+        .try_init();
     rt.block_on(async {
-        let mock_provider = MockProvider::new();
-        let mut server = TestServer::new(Some(mock_provider.clone())).await.unwrap();
-        assert!(!server.consumers.is_empty());
+        let chain_id = 99;
+        let transaction_id = "123456";
 
-        // mock provider
-        let gas = U256::from(100_000_000_000u64);
-        let nonce = U256::from(100);
-        let price = U256::from(1000000);
+        // mock providers
+        let provider = MockProvider::new();
+        let mut providers = HashMap::new();
+        providers.insert(chain_id, provider);
+        // mock transaction handler
+        let mut transaction_handler = MockTransactions::new();
+        // mock token price
+        let mut token_price = MockTokenPrice::new();
+        // mock tx manager
+        let mut tx_manager = MockTxManager::new();
+        // mock receiver and sender
+        let mock = create_default_sender_and_receiver();
+        let sender = mock.sender;
+        let receiver = mock.receiver;
+
+        // mock response
         let tx_hash = TxHash::random();
-        let block_number = U64::from(10000);
+        // gas price
+        tx_manager.expect_gas_price().returning(|_| Ok(U256::from(1000000)));
+        // estimate gas
+        tx_manager
+            .expect_estimate_gas()
+            .returning(|_, _| Ok(U256::from(1000000)));
+        // token price swap
+        token_price
+            .expect_swap()
+            .returning(|_, _, _, _, _| Ok(U256::from(1100000000000u64)));
+        // send
+        tx_manager.expect_send().returning(move |_, _| Ok(tx_hash));
+        // transaction handler update
+        transaction_handler.expect_update_by_id().returning(|_, _| {
+            Ok(Some(Document::new(
+                String::from("123456"),
+                1234567890u64,
+                1234567891u64,
+                default_transaction(),
+            )))
+        });
+        // wait confirm
+        tx_manager
+            .expect_confirm()
+            .withf(move |hash, _| hash == &tx_hash)
+            .returning(move |_, _| Ok(default_transaction_receipt(tx_hash)));
 
-        // push execution transaction response
-        let transaction_receipt = TransactionReceipt {
-            transaction_hash: tx_hash,
-            transaction_index: Default::default(),
-            block_hash: None,
-            block_number: None,
-            from: Default::default(),
-            to: None,
-            cumulative_gas_used: Default::default(),
-            gas_used: None,
-            contract_address: None,
-            logs: vec![],
-            status: Some(U64::from(1)),
-            root: None,
-            logs_bloom: Default::default(),
-            transaction_type: None,
-            effective_gas_price: None,
-            other: Default::default(),
-        };
-        let transaction_info = Transaction {
-            hash: tx_hash,
-            nonce,
-            block_hash: None,
-            block_number: Some(U64::from(9000)),
-            transaction_index: None,
-            from: Default::default(),
-            to: None,
-            value: Default::default(),
-            gas_price: None,
-            gas,
-            input: Default::default(),
-            v: Default::default(),
-            r: Default::default(),
-            s: Default::default(),
-            transaction_type: None,
-            access_list: None,
-            max_priority_fee_per_gas: None,
-            max_fee_per_gas: None,
-            chain_id: None,
-            other: Default::default(),
-        };
-        // get_transaction_receipt
-        mock_provider.push(Some(transaction_receipt)).unwrap();
-        // set block number
-        mock_provider.push(block_number).unwrap();
-        // get transaction
-        mock_provider.push(Some(transaction_info)).unwrap();
-        mock_provider.push(tx_hash).unwrap();
-        mock_provider.push(price).unwrap();
-        mock_provider.push(price).unwrap();
-        mock_provider.push(gas).unwrap();
-        mock_provider.push(nonce).unwrap();
-        mock_provider.push(price).unwrap();
+        // create consumer
+        let mut consumer = setup(MockOptions {
+            chain_id,
+            is_tx_eip1559: false,
+            main_asset_symbol: "MTT".to_string(),
+            main_asset_decimals: 16,
+            receiver,
+            providers,
+            transaction_handler,
+            token_price,
+            tx_manager,
+        });
 
-        // mock server
-        let id_bytes = read_file_bytes(TOKEN_PRICE_CONFIG_PATH).await.unwrap();
-        let currency_quote: CurrencyQuoteResponse = serde_json::from_slice(&id_bytes).unwrap();
-        let mock = server
-            .mock_server
-            .mock("GET", "/v2/cryptocurrency/quotes/latest")
-            .match_query(Matcher::Any)
-            .with_body(serde_json::to_string(&currency_quote).expect("Failed to serialize struct to JSON"))
-            .create_async()
+        tokio::spawn(async move {
+            consumer.consume().await;
+        });
+
+        // send request to consumer
+        let result = sender
+            .send((transaction_id.to_string(), default_transact_request_data(chain_id)))
             .await;
-
-        // sender send a msg
-        let sender = transact_channel::find_producer_by_id_and_symbol(&server.senders, 5, "eth", AssetType::Main);
-        assert!(sender.is_some());
-        let sender = sender.unwrap();
-        let res = sender.send(get_valid_transact_request_data()).await;
-        assert!(res.is_ok());
-
-        // run consumers
-        for consumer in server.consumers {
-            rt.spawn(async {
-                consumer.run().await;
-            });
-        }
-
-        // find transaction
-        let uuid = res.unwrap().id;
-
-        // wait transaction successful
-        loop {
-            let transaction = server.transaction_handler.find_by_id(&uuid).await;
-            assert!(transaction.is_ok());
-            let transaction = transaction.unwrap();
-            assert!(transaction.is_some());
-            let transaction = transaction.unwrap();
-            assert_eq!(transaction.id, uuid);
-            if transaction.data.status == TransactStatus::Failed {
-                error!("transaction failed: {:?}", transaction.data.error_message);
-            }
-            assert_ne!(transaction.data.status, TransactStatus::Failed);
-            if transaction.data.status == TransactStatus::Succeeded {
-                break;
-            }
-            sleep(Duration::from_secs(3));
-        }
-        mock.assert_async().await;
+        assert!(result.is_ok());
     });
 }
 
 #[test]
-fn test_consumer_execution_failed() {
+fn test_consumer_send_tx_error() {
     let rt = Runtime::new().unwrap();
-
+    let _ = env_logger::builder()
+        .filter_module("mystiko_relayer", LevelFilter::Debug)
+        .try_init();
     rt.block_on(async {
-        let mock_provider = MockProvider::new();
-        let server = TestServer::new(Some(mock_provider.clone())).await.unwrap();
-        assert!(!server.consumers.is_empty());
+        let chain_id = 99;
+        let transaction_id = "123456";
 
-        // sender send a msg
-        let sender = transact_channel::find_producer_by_id_and_symbol(&server.senders, 5, "eth", AssetType::Main);
-        assert!(sender.is_some());
-        let sender = sender.unwrap();
-        let res = sender.send(get_valid_transact_request_data()).await;
-        assert!(res.is_ok());
+        // mock providers
+        let provider = MockProvider::new();
+        let mut providers = HashMap::new();
+        providers.insert(chain_id, provider);
+        // mock transaction handler
+        let mut transaction_handler = MockTransactions::new();
+        // mock token price
+        let mut token_price = MockTokenPrice::new();
+        // mock tx manager
+        let mut tx_manager = MockTxManager::new();
+        // mock receiver and sender
+        let mock = create_default_sender_and_receiver();
+        let sender = mock.sender;
+        let receiver = mock.receiver;
 
-        // run consumers
-        for consumer in server.consumers {
-            rt.spawn(async {
-                consumer.run().await;
-            });
-        }
+        // gas price
+        tx_manager.expect_gas_price().returning(|_| Ok(U256::from(1000000)));
+        // estimate gas
+        tx_manager
+            .expect_estimate_gas()
+            .returning(|_, _| Ok(U256::from(1000000)));
+        // token price swap
+        token_price
+            .expect_swap()
+            .returning(|_, _, _, _, _| Ok(U256::from(1100000000000u64)));
+        // send
+        tx_manager
+            .expect_send()
+            .returning(move |_, _| Err(TransactionMiddlewareError::SendTxError("mock error".to_string())));
+        // transaction handler update
+        transaction_handler.expect_update_by_id().returning(|_, _| {
+            Ok(Some(Document::new(
+                String::from("123456"),
+                1234567890u64,
+                1234567891u64,
+                default_transaction(),
+            )))
+        });
 
-        // find transaction
-        let uuid = res.unwrap().id;
+        // create consumer
+        let mut consumer = setup(MockOptions {
+            chain_id,
+            is_tx_eip1559: false,
+            main_asset_symbol: "MTT".to_string(),
+            main_asset_decimals: 16,
+            receiver,
+            providers,
+            transaction_handler,
+            token_price,
+            tx_manager,
+        });
 
-        // wait transaction failed
-        loop {
-            let transaction = server.transaction_handler.find_by_id(&uuid).await;
-            assert!(transaction.is_ok());
-            let transaction = transaction.unwrap();
-            assert!(transaction.is_some());
-            let transaction = transaction.unwrap();
-            assert_eq!(transaction.id, uuid);
-            assert_ne!(transaction.data.status, TransactStatus::Succeeded);
-            if transaction.data.status == TransactStatus::Failed {
-                break;
-            }
-            sleep(Duration::from_secs(3));
-        }
+        tokio::spawn(async move {
+            consumer.consume().await;
+        });
+
+        // send request to consumer
+        let result = sender
+            .send((transaction_id.to_string(), default_transact_request_data(chain_id)))
+            .await;
+        assert!(result.is_ok());
     });
 }
 
 #[test]
-#[file_serial]
 fn test_validate_relayer_fee_error() {
-    // tokio runtime
     let rt = Runtime::new().unwrap();
-
+    let _ = env_logger::builder()
+        .filter_module("mystiko_relayer", LevelFilter::Debug)
+        .try_init();
     rt.block_on(async {
-        let mock_provider = MockProvider::new();
-        let mut server = TestServer::new(Some(mock_provider.clone())).await.unwrap();
-        assert!(!server.consumers.is_empty());
+        let chain_id = 99;
+        let transaction_id = "123456";
 
-        // mock provider
-        let gas = U256::from(999_000_000_000_000_000u64);
-        let nonce = U256::from(100);
-        let price = U256::from(1000000);
+        // mock providers
+        let provider = MockProvider::new();
+        let mut providers = HashMap::new();
+        providers.insert(chain_id, provider);
+        // mock transaction handler
+        let mut transaction_handler = MockTransactions::new();
+        // mock token price
+        let mut token_price = MockTokenPrice::new();
+        // mock tx manager
+        let mut tx_manager = MockTxManager::new();
+        // mock receiver and sender
+        let mock = create_default_sender_and_receiver();
+        let sender = mock.sender;
+        let receiver = mock.receiver;
+
+        // mock response
         let tx_hash = TxHash::random();
+        // gas price
+        tx_manager.expect_gas_price().returning(|_| Ok(U256::from(1000000)));
+        // estimate gas
+        tx_manager
+            .expect_estimate_gas()
+            .returning(|_, _| Ok(U256::from(9999999999u64)));
+        // token price swap
+        token_price
+            .expect_swap()
+            .returning(|_, _, _, _, _| Ok(U256::from(1100000000000u64)));
+        // send
+        tx_manager.expect_send().returning(move |_, _| Ok(tx_hash));
+        // transaction handler update
+        transaction_handler.expect_update_by_id().returning(|_, _| {
+            Ok(Some(Document::new(
+                String::from("123456"),
+                1234567890u64,
+                1234567891u64,
+                default_transaction(),
+            )))
+        });
+        // wait confirm
+        tx_manager
+            .expect_confirm()
+            .withf(move |hash, _| hash == &tx_hash)
+            .returning(move |_, _| Ok(default_transaction_receipt(tx_hash)));
 
-        // push execution transaction response
-        let transaction_receipt = TransactionReceipt {
-            transaction_hash: tx_hash,
-            transaction_index: Default::default(),
-            block_hash: None,
-            block_number: None,
-            from: Default::default(),
-            to: None,
-            cumulative_gas_used: Default::default(),
-            gas_used: None,
-            contract_address: None,
-            logs: vec![],
-            status: Some(U64::from(1)),
-            root: None,
-            logs_bloom: Default::default(),
-            transaction_type: None,
-            effective_gas_price: None,
-            other: Default::default(),
-        };
-        let transaction_info = Transaction {
-            hash: tx_hash,
-            nonce,
-            block_hash: None,
-            block_number: None,
-            transaction_index: None,
-            from: Default::default(),
-            to: None,
-            value: Default::default(),
-            gas_price: None,
-            gas,
-            input: Default::default(),
-            v: Default::default(),
-            r: Default::default(),
-            s: Default::default(),
-            transaction_type: None,
-            access_list: None,
-            max_priority_fee_per_gas: None,
-            max_fee_per_gas: None,
-            chain_id: None,
-            other: Default::default(),
-        };
+        // create consumer
+        let mut consumer = setup(MockOptions {
+            chain_id,
+            is_tx_eip1559: false,
+            main_asset_symbol: "MTT".to_string(),
+            main_asset_decimals: 16,
+            receiver,
+            providers,
+            transaction_handler,
+            token_price,
+            tx_manager,
+        });
 
-        // get_transaction_receipt
-        mock_provider.push(Some(transaction_receipt)).unwrap();
-        // get transaction
-        mock_provider.push(Some(transaction_info)).unwrap();
-        mock_provider.push(tx_hash).unwrap();
-        mock_provider.push(price).unwrap();
-        mock_provider.push(price).unwrap();
-        mock_provider.push(price).unwrap();
-        mock_provider.push(gas).unwrap();
-        mock_provider.push(nonce).unwrap();
-        mock_provider.push(price).unwrap();
+        tokio::spawn(async move {
+            consumer.consume().await;
+        });
 
-        // mock server
-        let id_bytes = read_file_bytes(TOKEN_PRICE_CONFIG_PATH).await.unwrap();
-        let currency_quote: CurrencyQuoteResponse = serde_json::from_slice(&id_bytes).unwrap();
-        let mock = server
-            .mock_server
-            .mock("GET", "/v2/cryptocurrency/quotes/latest")
-            .match_query(Matcher::Any)
-            .with_body(serde_json::to_string(&currency_quote).expect("Failed to serialize struct to JSON"))
-            .create_async()
+        // send request to consumer
+        let result = sender
+            .send((transaction_id.to_string(), default_transact_request_data(chain_id)))
             .await;
-
-        // sender send a msg
-        let sender = transact_channel::find_producer_by_id_and_symbol(&server.senders, 5, "eth", AssetType::Main);
-        assert!(sender.is_some());
-        let sender = sender.unwrap();
-        let res = sender.send(get_valid_transact_request_data()).await;
-        assert!(res.is_ok());
-
-        // run consumers
-        for consumer in server.consumers {
-            rt.spawn(async {
-                consumer.run().await;
-            });
-        }
-
-        // find transaction
-        let uuid = res.unwrap().id;
-
-        // wait transaction failed
-        loop {
-            let transaction = server.transaction_handler.find_by_id(&uuid).await;
-            assert!(transaction.is_ok());
-            let transaction = transaction.unwrap();
-            assert!(transaction.is_some());
-            let transaction = transaction.unwrap();
-            assert_eq!(transaction.id, uuid);
-            assert_ne!(transaction.data.status, TransactStatus::Succeeded);
-            if transaction.data.status == TransactStatus::Failed {
-                break;
-            }
-            sleep(Duration::from_secs(3));
-        }
-
-        mock.assert_async().await;
+        assert!(result.is_ok());
     });
 }
 
 #[test]
-#[file_serial]
-fn test_max_retry_update_transaction_status() {
-    // tokio runtime
+fn test_update_transaction_status_failed() {
     let rt = Runtime::new().unwrap();
-
+    let _ = env_logger::builder()
+        .filter_module("mystiko_relayer", LevelFilter::Debug)
+        .try_init();
     rt.block_on(async {
-        let mock_provider = MockProvider::new();
-        let server = TestServer::new(Some(mock_provider.clone())).await.unwrap();
-        assert!(!server.consumers.is_empty());
+        let chain_id = 99;
+        let transaction_id = "123456";
 
-        // sender send a msg
-        let sender = transact_channel::find_producer_by_id_and_symbol(&server.senders, 5, "eth", AssetType::Main);
-        assert!(sender.is_some());
-        let sender = sender.unwrap();
-        let res = sender.send(get_valid_transact_request_data()).await;
-        assert!(res.is_ok());
+        // mock providers
+        let provider = MockProvider::new();
+        let mut providers = HashMap::new();
+        providers.insert(chain_id, provider);
+        // mock transaction handler
+        let mut transaction_handler = MockTransactions::new();
+        // mock token price
+        let mut token_price = MockTokenPrice::new();
+        // mock tx manager
+        let mut tx_manager = MockTxManager::new();
+        // mock receiver and sender
+        let mock = create_default_sender_and_receiver();
+        let sender = mock.sender;
+        let receiver = mock.receiver;
 
-        // run consumers
-        for mut consumer in server.consumers {
-            consumer.handler = Arc::new(TransactionHandler::new(Arc::new(Database::new(
-                SqlStatementFormatter::sqlite(),
-                SqliteStorage::from_memory().await.unwrap(),
-            ))));
-            rt.spawn(async {
-                consumer.run().await;
-            });
-        }
+        // mock response
+        let tx_hash = TxHash::random();
+        // gas price
+        tx_manager.expect_gas_price().returning(|_| Ok(U256::from(1000000)));
+        // estimate gas
+        tx_manager
+            .expect_estimate_gas()
+            .returning(|_, _| Ok(U256::from(1000000)));
+        // token price swap
+        token_price
+            .expect_swap()
+            .returning(|_, _, _, _, _| Ok(U256::from(1100000000000u64)));
+        // send
+        tx_manager.expect_send().returning(move |_, _| Ok(tx_hash));
+        // transaction handler update
+        transaction_handler.expect_update_by_id().returning(|_, _| {
+            Err(RelayerServerError::StorageError(StorageError::NoSuchColumnError(
+                "mock error".to_string(),
+            )))
+        });
+        // wait confirm
+        tx_manager
+            .expect_confirm()
+            .withf(move |hash, _| hash == &tx_hash)
+            .returning(move |_, _| Ok(default_transaction_receipt(tx_hash)));
 
-        sleep(Duration::from_secs(15));
+        // create consumer
+        let mut consumer = setup(MockOptions {
+            chain_id,
+            is_tx_eip1559: false,
+            main_asset_symbol: "MTT".to_string(),
+            main_asset_decimals: 16,
+            receiver,
+            providers,
+            transaction_handler,
+            token_price,
+            tx_manager,
+        });
+
+        tokio::spawn(async move {
+            consumer.consume().await;
+        });
+
+        // send request to consumer
+        let result = sender
+            .send((transaction_id.to_string(), default_transact_request_data(chain_id)))
+            .await;
+        assert!(result.is_ok());
     });
+}
+
+#[derive(Debug, TypedBuilder)]
+struct MockOptions {
+    chain_id: u64,
+    is_tx_eip1559: bool,
+    main_asset_symbol: String,
+    main_asset_decimals: u32,
+    receiver: Receiver<(String, TransactRequestData)>,
+    providers: HashMap<u64, MockProvider>,
+    transaction_handler: MockTransactions,
+    token_price: MockTokenPrice,
+    tx_manager: MockTxManager,
+}
+
+fn setup(options: MockOptions) -> TransactionConsumer {
+    let mut providers = MockProviders::new();
+    let mut raw_providers = options
+        .providers
+        .into_iter()
+        .map(|(chain_id, provider)| {
+            let provider = Arc::new(Provider::new(ProviderWrapper::new(Box::new(provider))));
+            (chain_id, provider)
+        })
+        .collect::<HashMap<_, _>>();
+    providers.expect_get_provider().returning(move |chain_id| {
+        raw_providers
+            .remove(&chain_id)
+            .ok_or(anyhow::anyhow!("No provider for chain_id {}", chain_id))
+    });
+    TransactionConsumer {
+        chain_id: options.chain_id,
+        is_tx_eip1559: options.is_tx_eip1559,
+        main_asset_symbol: options.main_asset_symbol,
+        main_asset_decimals: options.main_asset_decimals,
+        receiver: options.receiver,
+        providers: Arc::new(Box::new(providers)),
+        handler: Arc::new(Box::new(options.transaction_handler)),
+        token_price: Arc::new(RwLock::new(Box::new(options.token_price))),
+        tx_manager: Box::new(options.tx_manager),
+    }
 }

@@ -1,214 +1,98 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use ethereum_types::U256;
-use ethers_core::types::Bytes;
-use ethers_middleware::providers::MockProvider;
-use ethers_providers::Provider;
-use lazy_static::lazy_static;
-use log::LevelFilter;
+use ethers_core::abi::AbiEncode;
+use ethers_core::types::{Bytes, U256};
+use ethers_core::types::{TransactionReceipt, TxHash};
+use ethers_providers::ProviderError;
 use mockall::mock;
-use mockito::{Server, ServerGuard};
 use mystiko_abi::commitment_pool::TransactRequest;
-use mystiko_ethers::{
-    ChainConfigProvidersOptions, ChainProvidersOptions, ProviderPool, ProviderWrapper, Providers, ProvidersOptions,
-};
+use mystiko_ethers::JsonRpcParams;
+use mystiko_ethers::{JsonRpcClientWrapper, Provider, ProviderWrapper};
 use mystiko_protos::core::v1::SpendType;
-use mystiko_relayer::channel::consumer::TransactionConsumer;
-use mystiko_relayer::channel::{transact_channel, TransactSendersMap};
-use mystiko_relayer::common::{init_app_state, AppState};
-use mystiko_relayer::configs::{load_server_config, AccountConfig};
+use mystiko_relayer::configs::load_server_config;
+use mystiko_relayer::configs::server::ServerConfig;
+use mystiko_relayer::context::Context;
+use mystiko_relayer::database::transaction::Transaction;
 use mystiko_relayer::database::Database;
-use mystiko_relayer::handler::account::AccountHandler;
-use mystiko_relayer::handler::transaction::TransactionHandler;
 use mystiko_relayer_types::TransactRequestData;
-use mystiko_server_utils::token_price::config::TokenPriceConfig;
-use mystiko_server_utils::token_price::TokenPrice;
+use mystiko_server_utils::token_price::{PriceMiddleware, PriceMiddlewareError};
+use mystiko_server_utils::tx_manager::TransactionMiddleware;
+use mystiko_server_utils::tx_manager::{TransactionData, TransactionMiddlewareError};
 use mystiko_storage::SqlStatementFormatter;
 use mystiko_storage_sqlite::SqliteStorage;
 use mystiko_types::{BridgeType, CircuitType};
 use std::str::FromStr;
 use std::sync::Arc;
-use tokio::sync::{Mutex, RwLock};
 
-mock! {
-    #[derive(Debug)]
-    pub ChainConfig {}
+#[allow(dead_code)]
+pub const SERVER_CONFIG_TESTNET: &str = "tests/files/configs/config_testnet.toml";
+#[allow(dead_code)]
+pub const SERVER_CONFIG_MAINNET: &str = "tests/files/configs/config_mainnet.toml";
+#[allow(dead_code)]
+pub const RELAYER_CONFIG_PATH: &str = "tests/files/relayer_config.json";
+#[allow(dead_code)]
+pub const SERVER_CONFIG_INVALID_ID: &str = "tests/files/configs/config_invalid_id.toml";
+#[allow(dead_code)]
+pub const SERVER_CONFIG_INVALID_SYMBOL: &str = "tests/files/configs/config_invalid_symbol.toml";
+#[allow(dead_code)]
+pub const SERVER_CONFIG_INVALID_VERSION: &str = "tests/files/configs/config_invalid_version.toml";
 
-    #[async_trait]
-    impl ChainProvidersOptions for ChainConfig {
-         async fn providers_options(&self, chain_id: u64) -> Result<Option<ProvidersOptions>>;
+#[allow(unused)]
+pub async fn create_default_server_config(testnet: bool) -> ServerConfig {
+    if testnet {
+        load_server_config(Some(SERVER_CONFIG_TESTNET)).unwrap()
+    } else {
+        load_server_config(Some(SERVER_CONFIG_MAINNET)).unwrap()
     }
 }
 
-#[allow(dead_code)]
-pub const SERVER_CONFIG_SYMBOL_INVALID: &str = "./tests/files/config_symbol_invalid.toml";
-#[allow(dead_code)]
-pub const SERVER_CONFIG_VERSION_INVALID: &str = "./tests/files/config_version_invalid.toml";
-#[allow(dead_code)]
-pub const TOKEN_PRICE_CONFIG_PATH: &str = "./tests/files/token_price.json";
-#[allow(dead_code)]
-pub const TEST_RELAYER_CONFIG_SINGLE_PATH: &str = "./tests/files/relayer_config_single.json";
-#[allow(dead_code)]
-pub const SERVER_CONFIG_ID_NOT_FOUND: &str = "./tests/files/config_id_not_found.toml";
-#[allow(dead_code)]
-pub const TEST_RELAYER_CONFIG_PATH: &str = "./tests/files/relayer_config.json";
-#[allow(dead_code)]
-pub const TEST_MYSTIKO_CONFIG_PATH: &str = "./tests/files/mystiko_config.json";
-pub const TESTNET_CONFIG_PATH: &str = "./tests/files/config_test_testnet.toml";
-pub const MAINNET_CONFIG_PATH: &str = "./tests/files/config_test_mainnet.toml";
-pub const ARRAY_QUEUE_CAPACITY: usize = 10;
-
-pub struct TestServer {
-    pub app_state: AppState,
-    pub senders: TransactSendersMap,
-    pub consumers: Vec<TransactionConsumer<ProviderPool<ChainConfigProvidersOptions>>>,
-    pub account_handler: Arc<AccountHandler<SqlStatementFormatter, SqliteStorage>>,
-    pub transaction_handler: Arc<TransactionHandler<SqlStatementFormatter, SqliteStorage>>,
-    pub token_price: Arc<RwLock<TokenPrice>>,
-    pub providers: Arc<ProviderPool<ChainConfigProvidersOptions>>,
-    pub mock_server: ServerGuard,
+#[allow(unused)]
+pub async fn create_default_database_in_memory() -> Database<SqlStatementFormatter, SqliteStorage> {
+    let storage = SqliteStorage::from_memory().await.unwrap();
+    let database = Database::new(SqlStatementFormatter::sqlite(), storage);
+    database.migrate().await.unwrap();
+    database
 }
 
-impl TestServer {
-    pub async fn new(mock: Option<MockProvider>) -> Result<Self> {
-        // load server config
-        let server_config = load_server_config(Some(TESTNET_CONFIG_PATH))?;
+#[allow(unused)]
+pub async fn create_default_context() -> Context {
+    let server_config = create_default_server_config(true).await;
+    let database = Arc::new(create_default_database_in_memory().await);
+    Context::new(Arc::new(server_config), database).await.unwrap()
+}
 
-        let _ = env_logger::builder()
-            .filter_module(
-                "mystiko_relayer",
-                LevelFilter::from_str(&server_config.settings.log_level)?,
-            )
-            .try_init();
-
-        // init app state
-        let app_state = init_app_state(server_config).await?;
-
-        // create database in memory
-        let storage = SqliteStorage::from_memory().await.unwrap();
-        let database = Database::new(SqlStatementFormatter::sqlite(), storage);
-        database.migrate().await.unwrap();
-        let db = Arc::new(database);
-
-        // handler
-        let accounts: Vec<AccountConfig> = app_state.server_config.accounts.values().cloned().collect();
-        let account_handler = Arc::new(AccountHandler::new(db.clone(), &accounts).await.unwrap());
-        let transaction_handler = Arc::new(TransactionHandler::new(db.clone()));
-
-        // init mock token price
-        let server = Server::new_async().await;
-        let mut default_cfg = TokenPriceConfig::new("testnet", None)?;
-        default_cfg.base_url = server.url();
-        let token_price = Arc::new(RwLock::new(TokenPrice::new(&default_cfg, "")?));
-
-        // mock provider
-        let mock = mock.unwrap_or_default();
-        let provider: Arc<mystiko_ethers::Provider> = Arc::new(Provider::new(ProviderWrapper::new(Box::new(mock))));
-        let pool: ProviderPool<ChainConfigProvidersOptions> = app_state.mystiko_config.clone().into();
-        pool.delete_provider(5).await;
-        pool.delete_provider(97).await;
-        pool.set_provider(5, provider.clone()).await;
-        pool.set_provider(97, provider.clone()).await;
-        let providers = Arc::new(pool);
-
-        // senders and consumers
-        let (senders, consumers) = transact_channel::init(
-            &app_state.server_config,
-            &app_state.relayer_config,
-            providers.clone(),
-            transaction_handler.clone(),
-            token_price.clone(),
-            ARRAY_QUEUE_CAPACITY,
-        )
-        .await?;
-
-        Ok(TestServer {
-            app_state,
-            senders,
-            consumers,
-            account_handler,
-            transaction_handler,
-            token_price,
-            providers,
-            mock_server: server,
-        })
-    }
-
-    #[allow(dead_code)]
-    pub async fn singleton() -> Arc<TestServer> {
-        let mut server_opt = SERVER.lock().await;
-        if server_opt.is_none() {
-            *server_opt = Some(Arc::new(TestServer::new(None).await.unwrap()));
-        }
-        server_opt.clone().unwrap()
+#[allow(unused)]
+pub fn default_transaction() -> Transaction {
+    Transaction {
+        chain_id: 0,
+        spend_type: Default::default(),
+        bridge_type: Default::default(),
+        status: Default::default(),
+        pool_address: "".to_string(),
+        asset_symbol: "".to_string(),
+        asset_decimals: 0,
+        circuit_type: CircuitType::Rollup1,
+        proof: "".to_string(),
+        root_hash: Default::default(),
+        output_commitments: None,
+        signature: "".to_string(),
+        serial_numbers: None,
+        sig_hashes: None,
+        sig_pk: "".to_string(),
+        public_amount: Default::default(),
+        gas_relayer_fee_amount: Default::default(),
+        out_rollup_fees: None,
+        public_recipient: "".to_string(),
+        relayer_recipient_address: "".to_string(),
+        out_encrypted_notes: None,
+        random_auditing_public_key: Default::default(),
+        error_message: None,
+        transaction_hash: Some(TxHash::random().encode_hex()),
     }
 }
 
-lazy_static! {
-    pub static ref SERVER: Mutex<Option<Arc<TestServer>>> = Mutex::new(None);
-}
-
-#[actix_rt::test]
-async fn create_providers_chain_id_not_found() {
-    let server = TestServer::new(None).await.unwrap();
-    let app_state = server.app_state;
-    let providers: ProviderPool<ChainConfigProvidersOptions> = app_state.mystiko_config.clone().into();
-    let provider = providers.get_provider(999).await;
-    assert!(provider.is_err());
-}
-
-#[actix_rt::test]
-async fn init_app_state_from_remote() {
-    let mut server = Server::new_async().await;
-
-    let mut server_config = load_server_config(Some(TESTNET_CONFIG_PATH)).unwrap();
-    server_config.options.mystiko_config_path = None;
-    server_config.options.relayer_config_path = None;
-    server_config.options.relayer_remote_config_base_url = Some(format!("{}/relayer_config", server.url()));
-    server_config.options.mystiko_remote_config_base_url = Some(format!("{}/config", server.url()));
-
-    // testnet
-    let mock_0 = server
-        .mock("GET", "/relayer_config/production/testnet/latest.json")
-        .with_body(testnet_relayer_config_json_string())
-        .create_async()
-        .await;
-    let mock_1 = server
-        .mock("GET", "/config/production/testnet/latest.json")
-        .with_body("{\"version\": \"0.2.0\"}")
-        .create_async()
-        .await;
-    let app_state = init_app_state(server_config).await;
-    println!("{:?}", app_state);
-    assert!(app_state.is_ok());
-    mock_0.assert_async().await;
-    mock_1.assert_async().await;
-
-    // mainnet
-    let mut server_config = load_server_config(Some(MAINNET_CONFIG_PATH)).unwrap();
-    server_config.options.mystiko_config_path = None;
-    server_config.options.relayer_config_path = None;
-    server_config.options.relayer_remote_config_base_url = Some(format!("{}/relayer_config", server.url()));
-    server_config.options.mystiko_remote_config_base_url = Some(format!("{}/config", server.url()));
-
-    let mock_2 = server
-        .mock("GET", "/relayer_config/production/mainnet/latest.json")
-        .with_body(mainnet_relayer_config_json_string())
-        .create_async()
-        .await;
-    let mock_3 = server
-        .mock("GET", "/config/production/mainnet/latest.json")
-        .with_body("{\"version\": \"0.2.0\"}")
-        .create_async()
-        .await;
-    let app_state = init_app_state(server_config).await;
-    assert!(app_state.is_ok());
-    mock_2.assert_async().await;
-    mock_3.assert_async().await;
-}
-
-#[allow(dead_code)]
-pub fn get_valid_transact_request_data() -> TransactRequestData {
+#[allow(unused)]
+pub fn default_transact_request_data(chain_id: u64) -> TransactRequestData {
     TransactRequestData {
         contract_param: TransactRequest {
             proof: Default::default(),
@@ -263,9 +147,9 @@ pub fn get_valid_transact_request_data() -> TransactRequestData {
         },
         spend_type: SpendType::Withdraw,
         bridge_type: BridgeType::Loop,
-        chain_id: 5,
+        chain_id,
         asset_symbol: "ETH".to_string(),
-        asset_decimals: 16,
+        asset_decimals: 18,
         pool_address: "0x4F416Acfd1153F9Af782056e68607227Af29D931".to_string(),
         circuit_type: CircuitType::Transaction1x0,
         signature: "0x800157ae47e94a156c42584190c33362b13ff94a7e8f5ef6ffd602c8d19ae\
@@ -274,161 +158,87 @@ pub fn get_valid_transact_request_data() -> TransactRequestData {
     }
 }
 
-fn testnet_relayer_config_json_string() -> String {
-    let relayer_config = r#"
-        {
-          "chains":[
-            {
-              "assetDecimals":18,
-              "assetSymbol":"ETH",
-              "chainId":5,
-              "contracts":[
-                {
-                  "assetDecimals":18,
-                  "assetSymbol":"ETH",
-                  "assetType":"main",
-                  "relayerFeeOfTenThousandth":25
-                },
-                {
-                  "assetDecimals":18,
-                  "assetSymbol":"MTT",
-                  "assetType":"erc20",
-                  "relayerFeeOfTenThousandth":25
-                },
-                {
-                  "assetDecimals":6,
-                  "assetSymbol":"mUSD",
-                  "assetType":"erc20",
-                  "relayerFeeOfTenThousandth":25
-                }
-              ],
-              "name":"Ethereum Goerli",
-              "relayerContractAddress":"0x45B22A8CefDfF00989882CAE48Ad06D57938Efcc",
-              "transactionInfo":{
-                "erc20GasCost":{
-                  "transaction1x0":512985,
-                  "transaction1x1":629802,
-                  "transaction1x2":705494,
-                  "transaction2x0":611040,
-                  "transaction2x1":727970,
-                  "transaction2x2":803645
-                },
-                "mainGasCost":{
-                  "transaction1x0":500704,
-                  "transaction1x1":617592,
-                  "transaction1x2":705128,
-                  "transaction2x0":598799,
-                  "transaction2x1":708389,
-                  "transaction2x2":803183
-                }
-              }
-            },
-            {
-              "assetDecimals":18,
-              "assetSymbol":"BNB",
-              "chainId":97,
-              "contracts":[
-                {
-                  "assetDecimals":18,
-                  "assetSymbol":"MTT",
-                  "assetType":"erc20",
-                  "relayerFeeOfTenThousandth":25
-                },
-                {
-                  "assetDecimals":6,
-                  "assetSymbol":"mUSD",
-                  "assetType":"erc20",
-                  "relayerFeeOfTenThousandth":25
-                },
-                {
-                  "assetDecimals":18,
-                  "assetSymbol":"BNB",
-                  "assetType":"main",
-                  "relayerFeeOfTenThousandth":25
-                }
-              ],
-              "name":"BSC Testnet",
-              "relayerContractAddress":"0xfC21Aa6a04f09565bC6eeDC182063Fd4E466670A",
-              "transactionInfo":{
-                "erc20GasCost":{
-                  "transaction1x0":537145,
-                  "transaction1x1":646754,
-                  "transaction1x2":724302,
-                  "transaction2x0":640808,
-                  "transaction2x1":756699,
-                  "transaction2x2":833563
-                },
-                "mainGasCost":{
-                  "transaction1x0":520800,
-                  "transaction1x1":636116,
-                  "transaction1x2":724104,
-                  "transaction2x0":630207,
-                  "transaction2x1":743273,
-                  "transaction2x2":833563
-                }
-              }
-            }
-          ],
-          "gitRevision":"6335708",
-          "version":"0.0.1"
-        }
-    "#;
-    relayer_config.to_string()
+#[allow(unused)]
+pub fn default_transaction_receipt(tx_hash: TxHash) -> TransactionReceipt {
+    TransactionReceipt {
+        transaction_hash: tx_hash,
+        transaction_index: Default::default(),
+        block_hash: None,
+        block_number: None,
+        from: Default::default(),
+        to: None,
+        cumulative_gas_used: Default::default(),
+        gas_used: None,
+        contract_address: None,
+        logs: vec![],
+        status: None,
+        root: None,
+        logs_bloom: Default::default(),
+        transaction_type: None,
+        effective_gas_price: None,
+        other: Default::default(),
+    }
 }
 
-fn mainnet_relayer_config_json_string() -> String {
-    let relayer_config = r#"
-        {
-            "chains":[
-                {
-                    "assetDecimals":18,
-                    "assetSymbol":"ETH",
-                    "chainId":1,
-                    "contracts":[
-                        {
-                            "assetDecimals":18,
-                            "assetSymbol":"ETH",
-                            "assetType":"main",
-                            "relayerFeeOfTenThousandth":100
-                        },
-                        {
-                            "assetDecimals":6,
-                            "assetSymbol":"USDT",
-                            "assetType":"erc20",
-                            "relayerFeeOfTenThousandth":100
-                        },
-                        {
-                            "assetDecimals":6,
-                            "assetSymbol":"USDC",
-                            "assetType":"erc20",
-                            "relayerFeeOfTenThousandth":100
-                        }
-                    ],
-                    "name":"Ethereum Mainnet",
-                    "relayerContractAddress":"0xfeecaab7006A7f81acD36128c011395ab1D5FCe0",
-                    "transactionInfo":{
-                        "erc20GasCost":{
-                            "transaction1x0":553636,
-                            "transaction1x1":620019,
-                            "transaction1x2":705494,
-                            "transaction2x0":611040,
-                            "transaction2x1":727970,
-                            "transaction2x2":803645
-                        },
-                        "mainGasCost":{
-                            "transaction1x0":500704,
-                            "transaction1x1":619966,
-                            "transaction1x2":705128,
-                            "transaction2x0":598799,
-                            "transaction2x1":708389,
-                            "transaction2x2":803183
-                        }
-                    }
-                }
-            ],
-            "gitRevision":"6335708",
-            "version":"0.0.1"
-        }
-    "#;
-    relayer_config.to_string()
+mock! {
+    #[derive(Debug)]
+    pub TokenPrice {}
+
+    #[async_trait]
+    impl PriceMiddleware for TokenPrice {
+        async fn price(&self, symbol: &str) -> Result<f64, PriceMiddlewareError>;
+        async fn swap(
+            &self,
+            asset_a: &str,
+            decimal_a: u32,
+            amount_a: U256,
+            asset_b: &str,
+            decimal_b: u32,
+        ) -> Result<U256, PriceMiddlewareError>;
+    }
+}
+
+mock! {
+    #[derive(Debug)]
+    pub TxManager {}
+
+    #[async_trait]
+    impl TransactionMiddleware<ProviderWrapper<Box<dyn JsonRpcClientWrapper>>> for TxManager {
+        fn tx_eip1559(&self) -> bool;
+        async fn gas_price(&self, provider: &Provider) -> Result<U256, TransactionMiddlewareError>;
+        async fn estimate_gas(&self, data: &TransactionData, provider: &Provider) -> Result<U256, TransactionMiddlewareError>;
+        async fn send(&self, data: &TransactionData, provider: &Provider) -> Result<TxHash, TransactionMiddlewareError>;
+        async fn confirm(
+            &self,
+            tx_hash: &TxHash,
+            provider: &Provider,
+        ) -> Result<TransactionReceipt, TransactionMiddlewareError>;
+    }
+}
+
+mock! {
+    #[derive(Debug)]
+    pub Provider {}
+
+    #[async_trait]
+    impl JsonRpcClientWrapper for Provider {
+         async fn request(
+            &self,
+            method: &str,
+            params: JsonRpcParams,
+        ) -> Result<serde_json::Value, ProviderError>;
+    }
+}
+
+mock! {
+    #[derive(Debug)]
+    pub Providers {}
+
+    #[async_trait]
+    impl mystiko_ethers::Providers for Providers {
+        async fn get_provider(&self, chain_id: u64) -> anyhow::Result<Arc<Provider>>;
+        async fn has_provider(&self, chain_id: u64) -> bool;
+        async fn set_provider(&self, chain_id: u64, provider: Arc<Provider>) -> Option<Arc<Provider>>;
+        async fn delete_provider(&self, chain_id: u64) -> Option<Arc<Provider>>;
+    }
 }

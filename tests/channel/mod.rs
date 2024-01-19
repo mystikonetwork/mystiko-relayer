@@ -1,58 +1,68 @@
+use async_trait::async_trait;
+use mockall::mock;
+use mystiko_relayer::channel::consumer::ConsumerHandler;
+use mystiko_relayer::channel::producer::ProducerHandler;
+use mystiko_relayer::channel::SenderInfo;
+use mystiko_relayer::database::transaction::Transaction;
+use mystiko_relayer::error::RelayerServerError;
+use mystiko_relayer_types::TransactRequestData;
+use mystiko_storage::Document;
+use std::sync::Arc;
+use tokio::sync::mpsc::{channel, Receiver, Sender};
+
 mod consumer_tests;
 mod producer_tests;
 
-use crate::common::{TestServer, SERVER_CONFIG_ID_NOT_FOUND, TEST_RELAYER_CONFIG_SINGLE_PATH};
-use mystiko_relayer::channel::transact_channel;
-use mystiko_relayer::configs::load_server_config;
-use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
-use mystiko_types::AssetType;
-
-#[actix_rt::test]
-async fn init_provider_not_found() {
-    let server = TestServer::new(None).await.unwrap();
-    let app_state = server.app_state;
-    let server_config = load_server_config(Some(SERVER_CONFIG_ID_NOT_FOUND)).unwrap();
-    let result = transact_channel::init(
-        &server_config,
-        &app_state.relayer_config,
-        server.providers.clone(),
-        server.transaction_handler.clone(),
-        server.token_price.clone(),
-        10,
-    )
-    .await;
-    assert!(result.is_err());
+struct MockSenderAndReceiver {
+    sender: Sender<(String, TransactRequestData)>,
+    receiver: Receiver<(String, TransactRequestData)>,
 }
 
-#[actix_rt::test]
-async fn find_producer_by_id_and_symbol_successful() {
-    let server = TestServer::new(None).await.unwrap();
-    let result = transact_channel::find_producer_by_id_and_symbol(&server.senders, 5, "Mtt", AssetType::Erc20);
-    assert!(result.is_some());
+#[warn(clippy::type_complexity)]
+fn create_default_sender_and_receiver() -> MockSenderAndReceiver {
+    let (sender, receiver) = channel::<(String, TransactRequestData)>(10);
+    MockSenderAndReceiver { sender, receiver }
 }
 
-#[actix_rt::test]
-async fn find_producer_by_id_and_symbol_none() {
-    let server = TestServer::new(None).await.unwrap();
-    let result = transact_channel::find_producer_by_id_and_symbol(&server.senders, 5, "mUSD", AssetType::Erc20);
-    assert!(result.is_none());
+#[test]
+fn test_compare_sender_info() {
+    let sender_0 = SenderInfo {
+        chain_id: 1,
+        private_key: "0x00000".to_string(),
+        supported_erc20_tokens: vec![],
+        producer: Arc::new(MockProducers::new()),
+    };
+    let sender_1 = SenderInfo {
+        chain_id: 1,
+        private_key: "0x00000".to_string(),
+        supported_erc20_tokens: vec![],
+        producer: Arc::new(MockProducers::new()),
+    };
+    let sender_2 = SenderInfo {
+        chain_id: 2,
+        private_key: "0x00000".to_string(),
+        supported_erc20_tokens: vec![],
+        producer: Arc::new(MockProducers::new()),
+    };
+    assert!(sender_0.eq(&sender_1));
+    assert!(sender_0.ne(&sender_2));
 }
 
-#[actix_rt::test]
-#[should_panic(expected = "chain id 97 config not found in relayer config")]
-async fn init_chain_id_not_found() {
-    let server = TestServer::new(None).await.unwrap();
-    let app_state = server.app_state;
-    let relayer_config = RelayerConfig::from_json_file(TEST_RELAYER_CONFIG_SINGLE_PATH)
-        .await
-        .unwrap();
-    let _ = transact_channel::init(
-        &app_state.server_config,
-        &relayer_config,
-        server.providers.clone(),
-        server.transaction_handler.clone(),
-        server.token_price.clone(),
-        10,
-    )
-    .await;
+mock! {
+    pub Producers {}
+
+    #[async_trait]
+    impl ProducerHandler for Producers {
+        type Error = RelayerServerError;
+        async fn send(&self, data: TransactRequestData) -> Result<Document<Transaction>, RelayerServerError>;
+    }
+}
+
+mock! {
+    pub Consumers {}
+
+    #[async_trait]
+    impl ConsumerHandler for Consumers {
+        async fn consume(&mut self);
+    }
 }
