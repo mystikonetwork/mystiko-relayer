@@ -61,6 +61,59 @@ async fn test_create_config_from_remote() {
     mock_3.assert_async().await;
 }
 
+#[actix_rt::test]
+async fn test_create_config_from_remote_staging() {
+    let mut server = Server::new_async().await;
+
+    let mut server_config = create_default_server_config(true).await;
+    server_config.options.mystiko_config_path = None;
+    server_config.options.relayer_config_path = None;
+    server_config.options.relayer_config_is_staging = Some(true);
+    server_config.options.mystiko_config_is_staging = Some(true);
+    server_config.options.relayer_remote_config_base_url = Some(format!("{}/relayer_config", server.url()));
+    server_config.options.mystiko_remote_config_base_url = Some(format!("{}/config", server.url()));
+
+    // mock testnet
+    let mock_0 = server
+        .mock("GET", "/relayer_config/staging/testnet/latest.json")
+        .with_body(testnet_relayer_config_json_string())
+        .create_async()
+        .await;
+    let mock_1 = server
+        .mock("GET", "/config/staging/testnet/latest.json")
+        .with_body("{\"version\": \"0.2.0\"}")
+        .create_async()
+        .await;
+    let result = create_config(Arc::new(server_config)).await;
+    assert!(result.is_ok());
+    mock_0.assert_async().await;
+    mock_1.assert_async().await;
+
+    let mut server_config = create_default_server_config(false).await;
+    server_config.options.mystiko_config_path = None;
+    server_config.options.relayer_config_path = None;
+    server_config.options.relayer_config_is_staging = Some(true);
+    server_config.options.mystiko_config_is_staging = Some(true);
+    server_config.options.relayer_remote_config_base_url = Some(format!("{}/relayer_config", server.url()));
+    server_config.options.mystiko_remote_config_base_url = Some(format!("{}/config", server.url()));
+
+    // mock mainnet
+    let mock_2 = server
+        .mock("GET", "/relayer_config/staging/mainnet/latest.json")
+        .with_body(mainnet_relayer_config_json_string())
+        .create_async()
+        .await;
+    let mock_3 = server
+        .mock("GET", "/config/staging/mainnet/latest.json")
+        .with_body("{\"version\": \"0.2.0\"}")
+        .create_async()
+        .await;
+    let result = create_config(Arc::new(server_config)).await;
+    assert!(result.is_ok());
+    mock_2.assert_async().await;
+    mock_3.assert_async().await;
+}
+
 fn testnet_relayer_config_json_string() -> String {
     let relayer_config = r#"
         {
