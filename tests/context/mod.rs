@@ -68,8 +68,8 @@ async fn test_create_config_from_remote_staging() {
     let mut server_config = create_default_server_config(true).await;
     server_config.options.mystiko_config_path = None;
     server_config.options.relayer_config_path = None;
-    server_config.options.relayer_config_is_staging = Some(true);
-    server_config.options.mystiko_config_is_staging = Some(true);
+    server_config.options.relayer_config_is_staging = true;
+    server_config.options.mystiko_config_is_staging = true;
     server_config.options.relayer_remote_config_base_url = Some(format!("{}/relayer_config", server.url()));
     server_config.options.mystiko_remote_config_base_url = Some(format!("{}/config", server.url()));
 
@@ -92,8 +92,8 @@ async fn test_create_config_from_remote_staging() {
     let mut server_config = create_default_server_config(false).await;
     server_config.options.mystiko_config_path = None;
     server_config.options.relayer_config_path = None;
-    server_config.options.relayer_config_is_staging = Some(true);
-    server_config.options.mystiko_config_is_staging = Some(true);
+    server_config.options.relayer_config_is_staging = true;
+    server_config.options.mystiko_config_is_staging = true;
     server_config.options.relayer_remote_config_base_url = Some(format!("{}/relayer_config", server.url()));
     server_config.options.mystiko_remote_config_base_url = Some(format!("{}/config", server.url()));
 

@@ -57,10 +57,10 @@ pub struct Settings {
 pub struct Options {
     #[serde(default)]
     #[builder(default)]
-    pub mystiko_config_is_staging: Option<bool>,
+    pub mystiko_config_is_staging: bool,
     #[serde(default)]
     #[builder(default)]
-    pub relayer_config_is_staging: Option<bool>,
+    pub relayer_config_is_staging: bool,
     #[serde(default)]
     #[builder(default)]
     pub mystiko_config_path: Option<String>,
