@@ -71,10 +71,7 @@ impl Context {
 
         // init token price
         let token_price = Arc::new(RwLock::new(Box::new(TokenPrice::new(
-            &TokenPriceConfig::new(
-                serde_json::to_string(&server_config.settings.network_type)?.as_str(),
-                None,
-            )?,
+            &TokenPriceConfig::new(server_config.settings.network_type == NetworkType::Testnet, None)?,
             &server_config.settings.coin_market_cap_api_key,
         )?) as Box<dyn PriceMiddleware>));
 
