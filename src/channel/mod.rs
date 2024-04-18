@@ -22,7 +22,7 @@ pub mod producer;
 pub const ARRAY_QUEUE_CAPACITY: usize = 50;
 
 #[derive(Debug)]
-pub struct SenderInfo<P: ProducerHandler = Box<dyn ProducerHandler<Error = RelayerServerError>>> {
+pub struct SenderInfo<P: ProducerHandler = Box<dyn ProducerHandler<Error=RelayerServerError>>> {
     pub chain_id: u64,
     pub private_key: String,
     pub supported_erc20_tokens: Vec<String>,
@@ -30,8 +30,8 @@ pub struct SenderInfo<P: ProducerHandler = Box<dyn ProducerHandler<Error = Relay
 }
 
 impl<P> PartialEq<Self> for SenderInfo<P>
-where
-    P: ProducerHandler,
+    where
+        P: ProducerHandler,
 {
     fn eq(&self, other: &Self) -> bool {
         self.chain_id == other.chain_id && self.private_key == other.private_key
@@ -41,8 +41,8 @@ where
 impl<P> Eq for SenderInfo<P> where P: ProducerHandler {}
 
 impl<P> Hash for SenderInfo<P>
-where
-    P: ProducerHandler,
+    where
+        P: ProducerHandler,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.chain_id.hash(state);
@@ -56,8 +56,8 @@ pub struct Channel<C: ConsumerHandler = Box<dyn ConsumerHandler>> {
 }
 
 impl<C> Channel<C>
-where
-    C: ConsumerHandler,
+    where
+        C: ConsumerHandler,
 {
     pub async fn new(context: Arc<Context>) -> Result<Channel<Box<dyn ConsumerHandler>>> {
         let mut senders = HashSet::new();
@@ -75,7 +75,7 @@ where
             let producer = Arc::new(Box::new(TransactionProducer::new(
                 Arc::new(sender),
                 context.transaction_handler.clone(),
-            )) as Box<dyn ProducerHandler<Error = RelayerServerError>>);
+            )) as Box<dyn ProducerHandler<Error=RelayerServerError>>);
             senders.insert(SenderInfo {
                 chain_id,
                 supported_erc20_tokens,
@@ -88,8 +88,10 @@ where
             // create tx manager
             let mut tx_manager_config = TxManagerConfig::new(None)?;
             if let Some(safe_confirmations) = chain_config.safe_confirmations() {
-                let mut tm_chain_config = TxManagerChainConfig::default();
-                tm_chain_config.confirm_blocks = safe_confirmations.try_into()?;
+                let confirm_block: u32 = safe_confirmations.try_into()?;
+                let tm_chain_config = TxManagerChainConfig::builder()
+                    .confirm_blocks(confirm_block)
+                    .build();
                 let mut chains = HashMap::new();
                 chains.insert(chain_id, tm_chain_config);
                 tx_manager_config.chains = chains;
