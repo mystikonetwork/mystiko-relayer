@@ -8,10 +8,10 @@ use anyhow::Result;
 use ethers_signers::{LocalWallet, Signer};
 use mystiko_ethers::{JsonRpcClientWrapper, ProviderWrapper, Providers};
 use mystiko_relayer_types::TransactRequestData;
-use mystiko_server_utils::tx_manager::config::TxManagerConfig;
+use mystiko_server_utils::tx_manager::config::{TxManagerChainConfig, TxManagerConfig};
 use mystiko_server_utils::tx_manager::{TransactionMiddleware, TxManagerBuilder};
 use mystiko_types::TransactionType;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 use tokio::sync::mpsc::channel;
@@ -86,7 +86,14 @@ where
             let wallet: LocalWallet = private_key.parse::<LocalWallet>()?.with_chain_id(chain_id);
 
             // create tx manager
-            let tx_manager_config = TxManagerConfig::new(None)?;
+            let mut tx_manager_config = TxManagerConfig::new(None)?;
+            if let Some(safe_confirmations) = chain_config.safe_confirmations() {
+                let confirm_block: u32 = safe_confirmations.try_into()?;
+                let tm_chain_config = TxManagerChainConfig::builder().confirm_blocks(confirm_block).build();
+                let mut chains = HashMap::new();
+                chains.insert(chain_id, tm_chain_config);
+                tx_manager_config.chains = chains;
+            }
             // create tx builder
             let tx_builder = TxManagerBuilder::builder()
                 .config(tx_manager_config)
