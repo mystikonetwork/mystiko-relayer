@@ -7,9 +7,10 @@ use crate::error::RelayerServerError;
 use crate::handler::account::handler::Account;
 use crate::handler::account::AccountHandler;
 use crate::handler::transaction::{Transaction, TransactionHandler};
+use crate::provider::{RelayerProviderOptions, RelayerSignerOptions};
 use anyhow::Result;
 use mystiko_config::MystikoConfig;
-use mystiko_ethers::{ChainConfigProvidersOptions, ProviderPool, Providers};
+use mystiko_ethers::{ProviderPool, Providers};
 use mystiko_protos::common::v1::ConfigOptions;
 use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
 use mystiko_server_utils::token_price::config::TokenPriceConfig;
@@ -26,6 +27,7 @@ pub struct Context {
     pub relayer_config: Arc<RelayerConfig>,
     pub mystiko_config: Arc<MystikoConfig>,
     pub providers: Arc<Box<dyn Providers>>,
+    pub signer_providers: Arc<Box<dyn Providers>>,
     pub transaction_handler:
         Arc<Box<dyn TransactionHandler<Document<DocumentTransaction>, Error = RelayerServerError>>>,
     pub account_handler: Arc<Box<dyn AccountHandler<Document<DocumentAccount>, Error = RelayerServerError>>>,
@@ -43,8 +45,24 @@ impl Context {
         // validation server config
         server_config.validation(&relayer_config)?;
 
-        // create provider
-        let providers: ProviderPool<ChainConfigProvidersOptions> = mystiko_config.clone().into();
+        // create signer provider
+        let relayer_signer_options = RelayerSignerOptions::builder()
+            .mystiko_config(mystiko_config.clone())
+            .server_config(server_config.clone())
+            .build();
+        let signer_providers: ProviderPool<RelayerSignerOptions> = ProviderPool::builder()
+            .chain_providers_options(relayer_signer_options)
+            .build();
+        let signer_providers = Arc::new(Box::new(signer_providers) as Box<dyn Providers>);
+
+        // create providers
+        let provider_options = RelayerProviderOptions::builder()
+            .mystiko_config(mystiko_config.clone())
+            .server_config(server_config.clone())
+            .build();
+        let providers: ProviderPool<RelayerProviderOptions> = ProviderPool::builder()
+            .chain_providers_options(provider_options)
+            .build();
         let providers = Arc::new(Box::new(providers) as Box<dyn Providers>);
 
         // create transaction handler
@@ -80,6 +98,7 @@ impl Context {
             relayer_config,
             mystiko_config,
             providers,
+            signer_providers,
             transaction_handler,
             account_handler,
             token_price,

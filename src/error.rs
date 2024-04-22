@@ -19,6 +19,8 @@ pub enum RelayerServerError {
     QueueSendError(String),
     #[error(transparent)]
     SerdeJsonError(#[from] serde_json::Error),
+    #[error("provider type unspecified")]
+    ProviderTypeUnspecifiedError(),
 }
 
 #[derive(Debug, Display, derive_more::Error)]
