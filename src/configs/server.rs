@@ -20,6 +20,7 @@ pub struct ServerConfig {
     #[serde(default)]
     #[builder(default)]
     pub accounts: HashMap<u16, AccountConfig>,
+    pub chains: HashMap<u16, ChainConfig>,
     #[validate]
     #[serde(default)]
     #[builder(default)]
