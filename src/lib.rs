@@ -42,5 +42,5 @@ pub mod context;
 pub mod database;
 pub mod error;
 pub mod handler;
-pub mod service;
 pub mod provider;
+pub mod service;

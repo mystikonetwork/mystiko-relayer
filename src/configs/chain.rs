@@ -4,6 +4,6 @@ use validator::Validate;
 
 #[derive(TypedBuilder, Validate, Serialize, Deserialize, Debug, Clone, Default)]
 pub struct ChainConfig {
-    pub providers: Vec<String>,
-    pub signer_endpoint: String,
+    pub providers: Option<Vec<String>>,
+    pub signer_endpoint: Option<String>,
 }

@@ -1,6 +1,6 @@
 pub mod account;
+pub mod chain;
 pub mod server;
-mod chain;
 
 use crate::configs::server::ServerConfig;
 use anyhow::Result;
