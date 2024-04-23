@@ -78,12 +78,14 @@ async fn create_app(
             .remove(&chain_id)
             .ok_or(anyhow::anyhow!("No provider for chain_id {}", chain_id))
     });
+    let signer_providers = MockProviders::new();
 
     let context = Context {
         server_config,
         relayer_config,
         mystiko_config,
         providers: Arc::new(Box::new(providers)),
+        signer_providers: Arc::new(Box::new(signer_providers)),
         transaction_handler: Arc::new(Box::new(options.transaction_handler)),
         account_handler: Arc::new(Box::new(options.account_handler)),
         token_price: Arc::new(RwLock::new(Box::new(options.token_price))),

@@ -1,5 +1,6 @@
 use mystiko_protos::common::v1::ProviderType;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use typed_builder::TypedBuilder;
 use validator::Validate;
 
@@ -11,7 +12,7 @@ pub struct ChainConfig {
 
 #[derive(TypedBuilder, Validate, Serialize, Deserialize, Debug, Clone, Default)]
 pub struct ProviderConfig {
-    pub urls: Vec<String>,
+    pub urls: HashMap<u16, String>,
     #[serde(default = "default_provider_type")]
     #[builder(default = default_provider_type())]
     pub provider_type: ProviderType,

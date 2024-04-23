@@ -33,7 +33,7 @@ impl ChainProvidersOptions for RelayerProviderOptions {
             if let Some(relayer_chain_config) = self.server_config.chains.get(&chain_id) {
                 if let Some(provider_config) = &relayer_chain_config.provider_config {
                     provider_type = provider_config.provider_type;
-                    for url in &provider_config.urls {
+                    for url in provider_config.urls.values() {
                         providers_options.push(ProviderOptions::builder().url(url.to_string()).build());
                     }
                 }

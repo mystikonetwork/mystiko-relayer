@@ -119,6 +119,7 @@ where
                 main_asset_decimals: relayer_chain_config.asset_decimals(),
                 receiver,
                 providers: context.providers.clone(),
+                signer_providers: context.signer_providers.clone(),
                 handler: context.transaction_handler.clone(),
                 token_price: context.token_price.clone(),
                 tx_manager,
