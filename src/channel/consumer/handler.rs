@@ -41,6 +41,7 @@ pub struct TransactionConsumer<
     pub main_asset_decimals: u32,
     pub receiver: Receiver<(String, TransactRequestData)>,
     pub providers: Arc<P>,
+    pub signer_providers: Arc<P>,
     pub handler: Arc<T>,
     pub token_price: Arc<RwLock<TP>>,
     pub tx_manager: TX,
@@ -94,6 +95,7 @@ where
     async fn send_tx(&mut self, uuid: &str, data: &TransactRequestData) -> Result<String> {
         // get provider
         let provider = self.providers.get_provider(data.chain_id).await?;
+        let signer = self.signer_providers.get_provider(data.chain_id).await?;
         // parse address to Address
         let contract_address = Address::from_str(&data.pool_address)?;
         // build call data
@@ -110,7 +112,7 @@ where
         let max_gas_price = self.validate_relayer_fee(data, &estimate_gas, gas_price).await?;
         // send transaction
         let tx_hash = self
-            .send(contract_address, &call_data, &provider, estimate_gas, max_gas_price)
+            .send(contract_address, &call_data, &signer, estimate_gas, max_gas_price)
             .await?;
 
         // update transaction status to pending
@@ -129,7 +131,7 @@ where
             tx_hash.as_str(),
             data.chain_id
         );
-        self.wait_confirm(&provider, &tx_hash).await
+        self.wait_confirm(&signer, &tx_hash).await
     }
 
     async fn validate_relayer_fee(

@@ -17,12 +17,8 @@ supported_erc20_tokens = { 0 = "mtt", 1 = "musd" }
 balance_alarm_threshold = 0.05
 balance_check_interval_ms = 500000
 
-[accounts.1]
-chain_id = 5
-available = true
-# Unique in the accounts list
-private_key = ""
-# If supported_erc20_list is empty, all erc20 tokens will not be supported
-supported_erc20_tokens = { 0 = "mtt", 1 = "musd" }
-balance_alarm_threshold = 1
-balance_check_interval_ms = 500000
+[chains.97]
+signer_endpoint = "https://data-seed-prebsc-2-s2.binance.org:8545"
+
+[chains.97.provider_config]
+urls = { 0 = "https://bsc-testnet.blockpi.network/v1/rpc/public", 1 = "https://bsc-testnet.blastapi.io/443f931f-a291-450f-956b-62a57fa8f758" }

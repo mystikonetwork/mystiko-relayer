@@ -1,4 +1,5 @@
 pub mod account;
+pub mod chain;
 pub mod server;
 
 use crate::configs::server::ServerConfig;

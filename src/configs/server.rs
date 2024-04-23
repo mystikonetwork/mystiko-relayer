@@ -1,4 +1,5 @@
 use crate::configs::account::AccountConfig;
+use crate::configs::chain::ChainConfig;
 use anyhow::{bail, Result};
 use log::debug;
 use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
@@ -20,6 +21,7 @@ pub struct ServerConfig {
     #[serde(default)]
     #[builder(default)]
     pub accounts: HashMap<u16, AccountConfig>,
+    pub chains: HashMap<u64, ChainConfig>,
     #[validate]
     #[serde(default)]
     #[builder(default)]

@@ -34,6 +34,10 @@ fn test_consumer_execution_success() {
         let provider = MockProvider::new();
         let mut providers = HashMap::new();
         providers.insert(chain_id, provider);
+        // mock signer
+        let signer = MockProvider::new();
+        let mut signer_providers = HashMap::new();
+        signer_providers.insert(chain_id, signer);
         // mock transaction handler
         let mut transaction_handler = MockTransactions::new();
         // mock token price
@@ -82,6 +86,7 @@ fn test_consumer_execution_success() {
             main_asset_decimals: 16,
             receiver,
             providers,
+            signer_providers,
             transaction_handler,
             token_price,
             tx_manager,
@@ -113,6 +118,10 @@ fn test_consumer_send_tx_error() {
         let provider = MockProvider::new();
         let mut providers = HashMap::new();
         providers.insert(chain_id, provider);
+        // mock signer
+        let signer = MockProvider::new();
+        let mut signer_providers = HashMap::new();
+        signer_providers.insert(chain_id, signer);
         // mock transaction handler
         let mut transaction_handler = MockTransactions::new();
         // mock token price
@@ -156,6 +165,7 @@ fn test_consumer_send_tx_error() {
             main_asset_decimals: 16,
             receiver,
             providers,
+            signer_providers,
             transaction_handler,
             token_price,
             tx_manager,
@@ -187,6 +197,10 @@ fn test_validate_relayer_fee_error() {
         let provider = MockProvider::new();
         let mut providers = HashMap::new();
         providers.insert(chain_id, provider);
+        // mock signer
+        let signer = MockProvider::new();
+        let mut signer_providers = HashMap::new();
+        signer_providers.insert(chain_id, signer);
         // mock transaction handler
         let mut transaction_handler = MockTransactions::new();
         // mock token price
@@ -235,6 +249,7 @@ fn test_validate_relayer_fee_error() {
             main_asset_decimals: 16,
             receiver,
             providers,
+            signer_providers,
             transaction_handler,
             token_price,
             tx_manager,
@@ -266,6 +281,10 @@ fn test_update_transaction_status_failed() {
         let provider = MockProvider::new();
         let mut providers = HashMap::new();
         providers.insert(chain_id, provider);
+        // mock signer
+        let signer = MockProvider::new();
+        let mut signer_providers = HashMap::new();
+        signer_providers.insert(chain_id, signer);
         // mock transaction handler
         let mut transaction_handler = MockTransactions::new();
         // mock token price
@@ -311,6 +330,7 @@ fn test_update_transaction_status_failed() {
             main_asset_decimals: 16,
             receiver,
             providers,
+            signer_providers,
             transaction_handler,
             token_price,
             tx_manager,
@@ -336,6 +356,7 @@ struct MockOptions {
     main_asset_decimals: u32,
     receiver: Receiver<(String, TransactRequestData)>,
     providers: HashMap<u64, MockProvider>,
+    signer_providers: HashMap<u64, MockProvider>,
     transaction_handler: MockTransactions,
     token_price: MockTokenPrice,
     tx_manager: MockTxManager,
@@ -356,6 +377,20 @@ fn setup(options: MockOptions) -> TransactionConsumer {
             .remove(&chain_id)
             .ok_or(anyhow::anyhow!("No provider for chain_id {}", chain_id))
     });
+    let mut signer_providers = MockProviders::new();
+    let mut raw_signer_providers = options
+        .signer_providers
+        .into_iter()
+        .map(|(chain_id, signer)| {
+            let signer_provider = Arc::new(Provider::new(ProviderWrapper::new(Box::new(signer))));
+            (chain_id, signer_provider)
+        })
+        .collect::<HashMap<_, _>>();
+    signer_providers.expect_get_provider().returning(move |chain_id| {
+        raw_signer_providers
+            .remove(&chain_id)
+            .ok_or(anyhow::anyhow!("No provider for chain_id {}", chain_id))
+    });
     TransactionConsumer {
         chain_id: options.chain_id,
         is_tx_eip1559: options.is_tx_eip1559,
@@ -363,6 +398,7 @@ fn setup(options: MockOptions) -> TransactionConsumer {
         main_asset_decimals: options.main_asset_decimals,
         receiver: options.receiver,
         providers: Arc::new(Box::new(providers)),
+        signer_providers: Arc::new(Box::new(signer_providers)),
         handler: Arc::new(Box::new(options.transaction_handler)),
         token_price: Arc::new(RwLock::new(Box::new(options.token_price))),
         tx_manager: Box::new(options.tx_manager),
