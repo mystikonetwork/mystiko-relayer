@@ -28,7 +28,7 @@ impl ChainProvidersOptions for RelayerProviderOptions {
     async fn providers_options(&self, chain_id: u64) -> anyhow::Result<Option<ProvidersOptions>> {
         if let Some(chain_config) = self.mystiko_config.find_chain(chain_id) {
             let mut providers_options: Vec<ProviderOptions> = vec![];
-            let mut provider_type = ProviderType::Quorum;
+            let mut provider_type = ProviderType::Failover;
 
             if let Some(relayer_chain_config) = self.server_config.chains.get(&chain_id) {
                 if let Some(provider_config) = &relayer_chain_config.provider_config {
