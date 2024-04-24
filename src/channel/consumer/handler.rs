@@ -93,20 +93,18 @@ where
     TX: TransactionMiddleware<ProviderWrapper<Box<dyn JsonRpcClientWrapper>>>,
 {
     async fn send_tx(&mut self, uuid: &str, data: &TransactRequestData) -> Result<String> {
-        // get provider
-        let provider = self.providers.get_provider(data.chain_id).await?;
         let signer = self.signer_providers.get_provider(data.chain_id).await?;
         // parse address to Address
         let contract_address = Address::from_str(&data.pool_address)?;
         // build call data
         let call_data = self
-            .build_call_data(contract_address, &provider, &data.contract_param, &data.signature)
+            .build_call_data(contract_address, &signer, &data.contract_param, &data.signature)
             .await?;
         // get gas price
-        let gas_price = self.tx_manager.gas_price(&provider).await?;
+        let gas_price = self.tx_manager.gas_price(&signer).await?;
         // estimate gas
         let estimate_gas = self
-            .estimate_gas(contract_address, &call_data, &provider, gas_price)
+            .estimate_gas(contract_address, &call_data, &signer, gas_price)
             .await?;
         // validate relayer fee
         let max_gas_price = self.validate_relayer_fee(data, &estimate_gas, gas_price).await?;
