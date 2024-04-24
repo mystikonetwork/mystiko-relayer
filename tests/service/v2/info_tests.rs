@@ -172,7 +172,7 @@ async fn test_success_with_options_main() {
         });
     token_price
         .expect_swap()
-        .withf(|asset_a, _, _, asset_b, _| asset_a == "ETH" && asset_b == "ETH")
+        .withf(|asset_a, _, _, asset_b, _| asset_a == "ETH" && asset_b == "eth")
         .returning(|_, _, _, _, _| Ok(U256::from(10000)));
     let provider = MockProvider::builder()
         .base_fee_per_gas(U256::from(100000))

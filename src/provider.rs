@@ -2,6 +2,7 @@ use crate::configs::server::ServerConfig;
 use crate::error::RelayerServerError;
 use async_trait::async_trait;
 use ethers_providers::Quorum;
+use log::info;
 use mystiko_config::MystikoConfig;
 use mystiko_ethers::{ChainProvidersOptions, ProviderOptions, ProvidersOptions, QuorumProviderOptions, WS_REGEX};
 use mystiko_protos::common::v1::ProviderType;
@@ -83,6 +84,7 @@ impl ChainProvidersOptions for RelayerSignerOptions {
             };
 
             let options = ProviderOptions::builder().url(signer_endpoint.to_string()).build();
+            info!("chain id {:?} provider options {:?}", chain_id, options);
             if WS_REGEX.is_match(&signer_endpoint) {
                 Ok(Some(ProvidersOptions::Ws(options)))
             } else {

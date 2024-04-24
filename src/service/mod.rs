@@ -129,22 +129,17 @@ async fn minimum_gas_fee(
 
     let minimum_gas_fee = gas_price.mul(gas_cost);
 
-    match asset_type {
-        AssetType::Erc20 => {
-            // swap main to erc20
-            let token_price = token.write().await;
-            let result = token_price
-                .swap(
-                    main_asset_symbol,
-                    main_asset_decimals,
-                    minimum_gas_fee,
-                    asset_symbol,
-                    asset_decimals,
-                )
-                .await?;
-            drop(token_price);
-            Ok(result)
-        }
-        AssetType::Main => Ok(minimum_gas_fee),
-    }
+    let token_price = token.write().await;
+    let result = token_price
+        .swap(
+            main_asset_symbol,
+            main_asset_decimals,
+            minimum_gas_fee,
+            asset_symbol,
+            asset_decimals,
+        )
+        .await?;
+    drop(token_price);
+
+    Ok(result)
 }
