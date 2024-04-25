@@ -124,7 +124,7 @@ pub async fn create_config(server_config: Arc<ServerConfig>) -> Result<(Arc<Rela
                 options.is_testnet = true;
             }
             options.is_staging = server_config.options.relayer_config_is_staging;
-            RelayerConfig::from_remote(&options).await?
+            RelayerConfig::from_options(options).await?
         }
         Some(path) => RelayerConfig::from_json_file(path).await?,
     };
@@ -141,7 +141,7 @@ pub async fn create_config(server_config: Arc<ServerConfig>) -> Result<(Arc<Rela
                 options.is_testnet = Some(true);
             }
             options.is_staging = Some(server_config.options.mystiko_config_is_staging);
-            MystikoConfig::from_remote(&options).await?
+            MystikoConfig::from_options(options).await?
         }
         Some(path) => MystikoConfig::from_json_file(path).await?,
     };
