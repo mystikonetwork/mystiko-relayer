@@ -35,7 +35,7 @@ mystiko_storage_macros = { git = "ssh://git@github.com/mystikonetwork/mystiko-ru
 mystiko_storage_sqlite = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "d2cfd1c" }
 mystiko_types = { git = "ssh://git@github.com/mystikonetwork/mystiko-static-config.git", rev = "2b27cc4" }
 mystiko_utils = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "d2cfd1c", features = ["config"] }
-mystiko_server_utils = { git = "ssh://git@github.com/mystikonetwork/mystiko-backend.git", rev = "18f8637" }
+mystiko_server_utils = { git = "ssh://git@github.com/mystikonetwork/mystiko-backend.git", rev = "b7bb928" }
 num-bigint = { version = "0.4", features = ["serde"] }
 num-traits = { version = "0.2.15" }
 rand = { version = "0.8.5" }
