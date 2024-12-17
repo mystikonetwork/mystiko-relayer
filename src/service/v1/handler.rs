@@ -47,7 +47,7 @@ pub async fn chain_status(
         Some(chain_config) => chain_config.transaction_type() == &TransactionType::Eip1559,
     };
 
-    return if let Some(relayer_chain_config) = relayer_config.find_chain_config(chain_id) {
+    if let Some(relayer_chain_config) = relayer_config.find_chain_config(chain_id) {
         let accounts = handler.find_by_chain_id(chain_id).await.map_err(|e| {
             error!("Failed to query accounts: {:?}", e);
             ResponseError::DatabaseError
@@ -176,7 +176,7 @@ pub async fn chain_status(
             relayer_contract_address: None,
             contracts: None,
         }))
-    };
+    }
 }
 
 #[get("/jobs/{id}")]
