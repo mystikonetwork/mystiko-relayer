@@ -43,7 +43,7 @@ pub async fn info(
     };
 
     // check relayer chain config and server config
-    return if let Some(relayer_chain_config) = relayer_config.find_chain_config(chain_id) {
+    if let Some(relayer_chain_config) = relayer_config.find_chain_config(chain_id) {
         let accounts = handler.find_by_chain_id(chain_id).await.map_err(|e| {
             error!("Failed to query accounts: {:?}", e);
             ResponseError::DatabaseError
@@ -167,7 +167,7 @@ pub async fn info(
                 .available(false)
                 .build(),
         ))
-    };
+    }
 }
 
 #[post("/transact")]

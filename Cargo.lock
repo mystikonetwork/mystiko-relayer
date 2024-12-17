@@ -2643,7 +2643,7 @@ dependencies = [
 [[package]]
 name = "mystiko_fs"
 version = "0.1.0"
-source = "git+ssh://git@github.com/mystikonetwork/mystiko-backend.git?rev=0e78984#0e78984ee92932089c6894a3dc5df6121ca9393b"
+source = "git+ssh://git@github.com/mystikonetwork/mystiko-backend.git?rev=602ecf0#602ecf0e5f924e61a0cc8e4634c584c151830e57"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -2791,7 +2791,7 @@ dependencies = [
 [[package]]
 name = "mystiko_server_utils"
 version = "0.1.0"
-source = "git+ssh://git@github.com/mystikonetwork/mystiko-backend.git?rev=0e78984#0e78984ee92932089c6894a3dc5df6121ca9393b"
+source = "git+ssh://git@github.com/mystikonetwork/mystiko-backend.git?rev=602ecf0#602ecf0e5f924e61a0cc8e4634c584c151830e57"
 dependencies = [
  "anyhow",
  "async-trait",
