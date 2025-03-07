@@ -35,7 +35,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: mystikonetwork/gas-relayer
+          images: ghcr.io/mystikonetwork/gas-relayer
           tags: |
             type=schedule
             type=ref,event=branch
