@@ -23,19 +23,19 @@ ethers-signers = { version = "2.0.14" }
 ethers-providers = { version = "2.0.14", features = ["ws"] }
 hex = { version = "0.4.3" }
 log = { version = "0.4.17" }
-mystiko_abi = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "6718362" }
-mystiko_config = { git = "ssh://git@github.com/mystikonetwork/mystiko-static-config.git", rev = "da78078", features = ["fs"] }
-mystiko_ethers = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "6718362", features = ["config"] }
-mystiko_protos = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "6718362", default-features = false, features = ["mystiko-storage-v1"] }
-mystiko_validator = { git = "ssh://git@github.com/mystikonetwork/mystiko-static-config.git" }
-mystiko_relayer_config = { git = "ssh://git@github.com/mystikonetwork/mystiko-static-config.git", rev = "da78078", features = ["fs"] }
-mystiko_relayer_types = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "6718362" }
-mystiko_storage = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "6718362" }
-mystiko_storage_macros = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "6718362" }
-mystiko_storage_sqlite = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "6718362" }
-mystiko_types = { git = "ssh://git@github.com/mystikonetwork/mystiko-static-config.git", rev = "da78078" }
-mystiko_utils = { git = "ssh://git@github.com/mystikonetwork/mystiko-rust.git", rev = "6718362", features = ["config"] }
-mystiko_server_utils = { git = "ssh://git@github.com/mystikonetwork/mystiko-backend.git", rev = "602ecf0" }
+mystiko_abi = { git = "https://github.com/mystikonetwork/mystiko-rust", rev = "4f46073" }
+mystiko_config = { git = "https://github.com/mystikonetwork/mystiko-static-config", rev = "a290629", features = ["fs"] }
+mystiko_ethers = { git = "https://github.com/mystikonetwork/mystiko-rust", rev = "4f46073", features = ["config"] }
+mystiko_protos = { git = "https://github.com/mystikonetwork/mystiko-rust", rev = "4f46073", default-features = false, features = ["mystiko-storage-v1"] }
+mystiko_validator = { git = "https://github.com/mystikonetwork/mystiko-static-config", rev = "a290629" }
+mystiko_relayer_config = { git = "https://github.com/mystikonetwork/mystiko-static-config", rev = "a290629", features = ["fs"] }
+mystiko_relayer_types = { git = "https://github.com/mystikonetwork/mystiko-rust", rev = "4f46073" }
+mystiko_storage = { git = "https://github.com/mystikonetwork/mystiko-rust", rev = "4f46073" }
+mystiko_storage_macros = { git = "https://github.com/mystikonetwork/mystiko-rust", rev = "4f46073" }
+mystiko_storage_sqlite = { git = "https://github.com/mystikonetwork/mystiko-rust", rev = "4f46073" }
+mystiko_types = { git = "https://github.com/mystikonetwork/mystiko-static-config", rev = "a290629" }
+mystiko_utils = { git = "https://github.com/mystikonetwork/mystiko-rust", rev = "4f46073", features = ["config"] }
+mystiko_server_utils = { git = "https://github.com/mystikonetwork/mystiko-backend", rev = "d2d641c" }
 num-bigint = { version = "0.4", features = ["serde"] }
 num-traits = { version = "0.2.15" }
 rand = { version = "0.8.5" }
@@ -57,6 +57,6 @@ async-trait = { version = "0.1.64" }
 serial_test = { version = "2.0.0", features = ["file_locks"] }
 mockall = { version = "0.11.4" }
 mockito = { version = "1.1.0" }
-mystiko_fs = { git = "ssh://git@github.com/mystikonetwork/mystiko-backend.git", rev = "602ecf0" }
+mystiko_fs = { git = "https://github.com/mystikonetwork/mystiko-backend", rev = "d2d641c" }
 tempfile = { version = "3.4.0" }
 lazy_static = { version = "1.4.0" }
