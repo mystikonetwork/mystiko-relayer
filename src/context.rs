@@ -132,7 +132,9 @@ pub async fn create_config(server_config: Arc<ServerConfig>) -> Result<(Arc<Rela
     let mystiko_config = match mystiko_config_path {
         None => {
             let mut options = if let Some(base_url) = &server_config.options.mystiko_remote_config_base_url {
-                MystikoConfigOptions::builder().remote_base_url(base_url.to_string()).build()
+                MystikoConfigOptions::builder()
+                    .remote_base_url(base_url.to_string())
+                    .build()
             } else {
                 MystikoConfigOptions::builder().build()
             };
