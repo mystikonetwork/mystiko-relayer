@@ -12,15 +12,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: SSH Agent
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: |
-            ${{ secrets.SSH_PRIVATE_KEY_MYSTIKO_BACKEND }}
-            ${{ secrets.SSH_PRIVATE_KEY_MYSTIKO_PROTOS }}
-            ${{ secrets.SSH_PRIVATE_KEY_MYSTIKO_RUST }}
-            ${{ secrets.SSH_PRIVATE_KEY_MYSTIKO_STATIC_CONFIG }}
-
       - name: Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:

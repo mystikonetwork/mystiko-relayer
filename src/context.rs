@@ -9,9 +9,8 @@ use crate::handler::account::AccountHandler;
 use crate::handler::transaction::{Transaction, TransactionHandler};
 use crate::provider::{RelayerProviderOptions, RelayerSignerOptions};
 use anyhow::Result;
-use mystiko_config::MystikoConfig;
+use mystiko_config::{MystikoConfig, MystikoConfigOptions};
 use mystiko_ethers::{ProviderPool, Providers};
-use mystiko_protos::common::v1::ConfigOptions;
 use mystiko_relayer_config::wrapper::relayer::RelayerConfig;
 use mystiko_server_utils::token_price::config::TokenPriceConfig;
 use mystiko_server_utils::token_price::{PriceMiddleware, TokenPrice};
@@ -133,14 +132,14 @@ pub async fn create_config(server_config: Arc<ServerConfig>) -> Result<(Arc<Rela
     let mystiko_config = match mystiko_config_path {
         None => {
             let mut options = if let Some(base_url) = &server_config.options.mystiko_remote_config_base_url {
-                ConfigOptions::builder().remote_base_url(base_url.to_string()).build()
+                MystikoConfigOptions::builder().remote_base_url(base_url.to_string()).build()
             } else {
-                ConfigOptions::builder().build()
+                MystikoConfigOptions::builder().build()
             };
             if server_config.settings.network_type == NetworkType::Testnet {
-                options.is_testnet = Some(true);
+                options.is_testnet = true;
             }
-            options.is_staging = Some(server_config.options.mystiko_config_is_staging);
+            options.is_staging = server_config.options.mystiko_config_is_staging;
             MystikoConfig::from_options(options).await?
         }
         Some(path) => MystikoConfig::from_json_file(path).await?,
